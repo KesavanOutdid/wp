@@ -289,21 +289,21 @@ const waitForEmailWindow = (ms = 500) => new Promise((resolve) => setTimeout(res
 
 // Function to send order success email to seller and admin
 async function sendOrderSuccessEmailToSellerAndAdmin(order, user) {
-  try {
-    const db = await database.connectToDatabase();
+    try {
+        const db = await database.connectToDatabase();
 
-    // Get all sellers and admins
-    const sellersAndAdmins = await db.collection('users').find({
-      role_id: { $in: [1, 4] } // 1 = Admin, 4 = Seller
-    }).toArray();
+        // Get all sellers and admins
+        const sellersAndAdmins = await db.collection('users').find({
+            role_id: { $in: [1, 4] } // 1 = Admin, 4 = Seller
+        }).toArray();
 
-    if (!sellersAndAdmins.length) {
-      console.warn('No sellers or admins found to send order success email');
-      return false;
-    }
+        if (!sellersAndAdmins.length) {
+            console.warn('No sellers or admins found to send order success email');
+            return false;
+        }
 
-    const subject = `New Order Success - ${order.customOrderId}`;
-    const text = `
+        const subject = `New Order Success - ${order.customOrderId}`;
+        const text = `
 Dear Team,
 
 A new order has been successfully placed and payment confirmed.
@@ -323,7 +323,7 @@ Best regards,
 IonHive System
     `;
 
-    const html = `
+        const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
         <h2 style="color: #333;">New Order Success Notification</h2>
         <p style="font-size: 16px; color: #555;">A new order has been successfully placed and payment confirmed.</p>
@@ -347,21 +347,21 @@ IonHive System
       </div>
     `;
 
-    // Send email to all sellers and admins
-    const emailPromises = sellersAndAdmins.map(recipient => {
-      return sendEmailService(recipient.email, subject, text, html);
-    });
+        // Send email to all sellers and admins
+        const emailPromises = sellersAndAdmins.map(recipient => {
+            return sendEmailService(recipient.email, subject, text, html);
+        });
 
-    const results = await Promise.allSettled(emailPromises);
-    const successCount = results.filter(result => result.status === 'fulfilled' && result.value).length;
+        const results = await Promise.allSettled(emailPromises);
+        const successCount = results.filter(result => result.status === 'fulfilled' && result.value).length;
 
-    console.log(`Order success email sent to ${successCount}/${sellersAndAdmins.length} recipients`);
-    return successCount > 0;
+        console.log(`Order success email sent to ${successCount}/${sellersAndAdmins.length} recipients`);
+        return successCount > 0;
 
-  } catch (error) {
-    console.error('Error sending order success email to seller and admin:', error);
-    return false;
-  }
+    } catch (error) {
+        console.error('Error sending order success email to seller and admin:', error);
+        return false;
+    }
 }
 
 const sendMailWithRetry = async (payload, retries = 2) => {
@@ -403,82 +403,82 @@ async function sendEmail(to, subject, text, html) {
 }
 
 const getModules = async (req, res) => {
-  return res.status(200).json({
-    status: "Success",
-    message: "Modules fetched successfully",
-    data: MODULES,
-  });
+    return res.status(200).json({
+        status: "Success",
+        message: "Modules fetched successfully",
+        data: MODULES,
+    });
 };
 
 //role based permission
 const assignPermissions = async (req, res) => {
-  const { role_id, permissions } = req.body;
+    const { role_id, permissions } = req.body;
 
-  if (!role_id || !permissions || !Array.isArray(permissions)) {
-    return res.status(400).json({ status: "Failed", message: "role_id and permissions array are required" });
-  }
-
-  const db = await database.connectToDatabase();
-  const permissionsCollection = db.collection("permissions");
-
-  try {
-    const results = [];
-
-    for (const p of permissions) {
-      const module = p.module;
-      if (!module) continue;
-
-      const existing = await permissionsCollection.findOne({ role_id, module });
-
-      if (existing) {
-        await permissionsCollection.updateOne(
-          { role_id, module },
-          { $set: { ...p, status: p.status !== undefined ? p.status : true } }
-        );
-        results.push({ action: "updated", permission: { role_id, ...p } });
-      } else {
-        await permissionsCollection.insertOne({ role_id, ...p, status: p.status !== undefined ? p.status : true });
-        results.push({ action: "created", permission: { role_id, ...p } });
-      }
+    if (!role_id || !permissions || !Array.isArray(permissions)) {
+        return res.status(400).json({ status: "Failed", message: "role_id and permissions array are required" });
     }
 
-    return res.status(200).json({ status: "Success", message: "Permissions assigned/updated successfully", data: results });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ status: "Failed", message: "Internal Server Error" });
-  } finally {
-    // No manual client closing needed; handled by db module
-  }
+    const db = await database.connectToDatabase();
+    const permissionsCollection = db.collection("permissions");
+
+    try {
+        const results = [];
+
+        for (const p of permissions) {
+            const module = p.module;
+            if (!module) continue;
+
+            const existing = await permissionsCollection.findOne({ role_id, module });
+
+            if (existing) {
+                await permissionsCollection.updateOne(
+                    { role_id, module },
+                    { $set: { ...p, status: p.status !== undefined ? p.status : true } }
+                );
+                results.push({ action: "updated", permission: { role_id, ...p } });
+            } else {
+                await permissionsCollection.insertOne({ role_id, ...p, status: p.status !== undefined ? p.status : true });
+                results.push({ action: "created", permission: { role_id, ...p } });
+            }
+        }
+
+        return res.status(200).json({ status: "Success", message: "Permissions assigned/updated successfully", data: results });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: "Failed", message: "Internal Server Error" });
+    } finally {
+        // No manual client closing needed; handled by db module
+    }
 };
 
 // Fetch permissions by roleIds (like findByRoles)
 const fetchPermissionsByRole = async (req, res) => {
-  const roleIds = req.query.ids ? req.query.ids.split(",").map(Number) : [];
+    const roleIds = req.query.ids ? req.query.ids.split(",").map(Number) : [];
 
-  if (!roleIds.length) {
-    return res.status(400).json({ status: "Failed", message: "roleIds required" });
-  }
+    if (!roleIds.length) {
+        return res.status(400).json({ status: "Failed", message: "roleIds required" });
+    }
 
-  const db = await database.connectToDatabase();
-  const permissionsCollection = db.collection("permissions");
+    const db = await database.connectToDatabase();
+    const permissionsCollection = db.collection("permissions");
 
-  try {
-    const permissions = await permissionsCollection.find({ role_id: { $in: roleIds } }).toArray();
+    try {
+        const permissions = await permissionsCollection.find({ role_id: { $in: roleIds } }).toArray();
 
-    // Filter to only include modules defined in MODULES and actions that are true
-    const filteredPermissions = permissions.filter(p => {
-      const mod = MODULES.find(m => m.module === p.module);
-      if (!mod) return false;
-      return p.can_create || p.can_view || p.can_update || p.can_delete;
-    });
+        // Filter to only include modules defined in MODULES and actions that are true
+        const filteredPermissions = permissions.filter(p => {
+            const mod = MODULES.find(m => m.module === p.module);
+            if (!mod) return false;
+            return p.can_create || p.can_view || p.can_update || p.can_delete;
+        });
 
-    return res.status(200).json({ status: "Success", message: "Permissions fetched successfully", data: filteredPermissions });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ status: "Failed", message: "Internal Server Error" });
-  } finally {
-    // No manual client closing needed; handled by db module
-  }
+        return res.status(200).json({ status: "Success", message: "Permissions fetched successfully", data: filteredPermissions });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: "Failed", message: "Internal Server Error" });
+    } finally {
+        // No manual client closing needed; handled by db module
+    }
 };
 
 
@@ -1243,7 +1243,7 @@ const AddDeviceDetails = async (req, res) => {
     }
 };
 
-  
+
 // FetchDeviceDetails
 const FetchDeviceDetails = async (req, res) => {
     try {
@@ -1377,10 +1377,10 @@ const FetchOrders = async (req, res) => {
         const usersCollection = db.collection("users");
 
         const { page, limit, skip } = getPaginationParams(req, 10);
-        
+
         // Get total count first
         const total = await ordersCollection.countDocuments();
-        
+
         // Get paginated orders
         const orders = await ordersCollection.find().sort({ _id: -1 }).skip(skip).limit(limit).toArray();
 
@@ -1643,7 +1643,7 @@ const AddUserRoles = async (req, res) => {
         });
     }
 };
-  
+
 // FetchUserRoles
 const FetchUserRoles = async (req, res) => {
     try {
@@ -2001,7 +2001,7 @@ const AddUsers = async (req, res) => {
             }
 
             docsToInsert.push(newUser);
-            technicianCollection.insertOne({user_id: newUser.user_id,email: newUser.email, technician_id: newUser.technician_id || null, status: true,total_assigned_services:0,total_completed_services:0});
+            technicianCollection.insertOne({ user_id: newUser.user_id, email: newUser.email, technician_id: newUser.technician_id || null, status: true, total_assigned_services: 0, total_completed_services: 0 });
         }
 
         await collection.insertMany(docsToInsert);
@@ -2770,7 +2770,8 @@ const FetchInstallationService = async (req, res) => {
                             }
                         },
                         { $sort: { task_id: -1 } },
-                        { $limit: 1 }
+                        { $limit: 1 },
+                        { $project: { task_id: 1, assigned_technician_id: 1, task_status: 1, wp_device_id: 1 } }
                     ],
                     as: "service_records"
                 }
@@ -2785,8 +2786,11 @@ const FetchInstallationService = async (req, res) => {
             {
                 $lookup: {
                     from: "users",
-                    localField: "user_id",
-                    foreignField: "user_id",
+                    let: { userId: "$user_id" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$user_id", "$$userId"] } } },
+                        { $project: { email: 1 } }
+                    ],
                     as: "user"
                 }
             },
@@ -2800,8 +2804,11 @@ const FetchInstallationService = async (req, res) => {
             {
                 $lookup: {
                     from: "users",
-                    localField: "service_record.assigned_technician_id",
-                    foreignField: "technician_id",
+                    let: { techId: "$service_record.assigned_technician_id" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$technician_id", "$$techId"] } } },
+                        { $project: { name: 1, email: 1, phone: 1, technician_id: 1, user_id: 1 } }
+                    ],
                     as: "assignedTechnician"
                 }
             },
@@ -2955,7 +2962,7 @@ const FetchSelectUserOrders = async (req, res) => {
         });
     }
 };
-  
+
 // Send OTP email
 async function sendAssignInstallationEmail(email, otp) {
     try {
@@ -3224,112 +3231,112 @@ const AssignInstallation = async (req, res) => {
 
 // ReAssignInstallation
 const ReAssignInstallation = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const serviceRecords = db.collection("service_records");
-    const ordersCollection = db.collection("orders");
+    try {
+        const db = await database.connectToDatabase();
+        const serviceRecords = db.collection("service_records");
+        const ordersCollection = db.collection("orders");
 
-    const { task_id, technician_id, modified_by } = req.body;
+        const { task_id, technician_id, modified_by } = req.body;
 
-    // 1️⃣ Basic validation
-    if (!task_id || !technician_id || !modified_by) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Invalid or missing required fields',
-      });
-    }
+        // 1️⃣ Basic validation
+        if (!task_id || !technician_id || !modified_by) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Invalid or missing required fields',
+            });
+        }
 
-    // 2️⃣ Check if the task exists
-    const existingTask = await serviceRecords.findOne({ task_id });
-    if (!existingTask) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: `Task with task id ${task_id} not found.`,
-      });
-    }
+        // 2️⃣ Check if the task exists
+        const existingTask = await serviceRecords.findOne({ task_id });
+        if (!existingTask) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: `Task with task id ${task_id} not found.`,
+            });
+        }
 
-    // 4️⃣ Check related order payment status
-    const relatedOrder = await ordersCollection.findOne({
-      wp_device_id: existingTask.wp_device_id || existingTask.device_id,
-    });
-    
-if (
-  !relatedOrder ||
-  (relatedOrder.paymentType?.toLowerCase() !== 'cod' &&
-   relatedOrder.paymentStatus?.toLowerCase() !== 'completed')
-) {
-  return res.status(400).json({
-    status: 'Failed',
-    message: 'Cannot reassign installation: related order is not paid.',
-  });
-}
+        // 4️⃣ Check related order payment status
+        const relatedOrder = await ordersCollection.findOne({
+            wp_device_id: existingTask.wp_device_id || existingTask.device_id,
+        });
+
+        if (
+            !relatedOrder ||
+            (relatedOrder.paymentType?.toLowerCase() !== 'cod' &&
+                relatedOrder.paymentStatus?.toLowerCase() !== 'completed')
+        ) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Cannot reassign installation: related order is not paid.',
+            });
+        }
 
 
-    // 5️⃣ Fetch technician user to validate district
-    const usersCollection = db.collection("users");
-    const technicianUser = await usersCollection.findOne({ technician_id });
-    if (!technicianUser) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: 'Technician not found',
-      });
-    }
+        // 5️⃣ Fetch technician user to validate district
+        const usersCollection = db.collection("users");
+        const technicianUser = await usersCollection.findOne({ technician_id });
+        if (!technicianUser) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: 'Technician not found',
+            });
+        }
 
-    // 6️⃣ Validate technician district matches order address district
-    const normalizedOrderAddress = normalizeDeliveryAddress(relatedOrder.deliveryAddress || {});
-    const technicianDistrictNormalized = normalizeDeliveryAddress({ district: technicianUser.district || '' }).district;
-    if (normalizedOrderAddress.district !== technicianDistrictNormalized) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Technician district does not match order address district'
-      });
-    }
+        // 6️⃣ Validate technician district matches order address district
+        const normalizedOrderAddress = normalizeDeliveryAddress(relatedOrder.deliveryAddress || {});
+        const technicianDistrictNormalized = normalizeDeliveryAddress({ district: technicianUser.district || '' }).district;
+        if (normalizedOrderAddress.district !== technicianDistrictNormalized) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Technician district does not match order address district'
+            });
+        }
 
-    // 7️⃣ Check if technician is on leave
-    const leaveRequestsCollection = db.collection('leave_requests');
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+        // 7️⃣ Check if technician is on leave
+        const leaveRequestsCollection = db.collection('leave_requests');
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
 
-    const approvedLeaves = await leaveRequestsCollection.find({
-      technician_id: technician_id,
-      status: 'Approved',
-      from_date: { $lte: todayEnd },
-      to_date: { $gte: todayStart }
-    }).toArray();
+        const approvedLeaves = await leaveRequestsCollection.find({
+            technician_id: technician_id,
+            status: 'Approved',
+            from_date: { $lte: todayEnd },
+            to_date: { $gte: todayStart }
+        }).toArray();
 
-    if (approvedLeaves.length > 0) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Technician is on approved leave and cannot be reassigned'
-      });
-    }
+        if (approvedLeaves.length > 0) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Technician is on approved leave and cannot be reassigned'
+            });
+        }
 
-    // 8️⃣ Perform reassignment update
-    const now = new Date();
-    const updateResult = await serviceRecords.updateOne(
-      { task_id },
-      {
-        $set: {
-          assigned_technician_id: technician_id,
-          modified_by,
-          modified_date: now,
-          pending_reason: null,
-          assigned_date: now,
-        },
-      }
-    );
+        // 8️⃣ Perform reassignment update
+        const now = new Date();
+        const updateResult = await serviceRecords.updateOne(
+            { task_id },
+            {
+                $set: {
+                    assigned_technician_id: technician_id,
+                    modified_by,
+                    modified_date: now,
+                    pending_reason: null,
+                    assigned_date: now,
+                },
+            }
+        );
 
-    if (updateResult.modifiedCount === 1) {
-      // Get district sellers and send notification emails to admin, seller, and new technician (NOT to user)
-      const districtSellers = await getDistrictSellers(db, normalizedOrderAddress.district);
-      const sellerEmails = districtSellers.map(s => s.email);
-      const adminEmails = ['admin@gmail.com'];
-      const technicianEmail = [technicianUser.email];
-      const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
+        if (updateResult.modifiedCount === 1) {
+            // Get district sellers and send notification emails to admin, seller, and new technician (NOT to user)
+            const districtSellers = await getDistrictSellers(db, normalizedOrderAddress.district);
+            const sellerEmails = districtSellers.map(s => s.email);
+            const adminEmails = ['admin@gmail.com'];
+            const technicianEmail = [technicianUser.email];
+            const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
 
-      const notificationHtml = `
+            const notificationHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
               <h2 style="color: #333;">Installation Task Re-assigned</h2>
               <ul style="font-size: 16px; color: #555;">
@@ -3343,46 +3350,46 @@ if (
           </div>
       `;
 
-      await sendEmailToMultiple(allNotificationEmails, 'Installation Task Re-assigned - IonHive', '', notificationHtml);
+            await sendEmailToMultiple(allNotificationEmails, 'Installation Task Re-assigned - IonHive', '', notificationHtml);
 
-      // Log to assignment history
-      await logToAssignmentHistory(db, {
-          task_id: task_id,
-          task_type: 1,
-          assignment_type: 'Installation',
-          action: 'reassign',
-          assignment_mode: 'manual',
-          technician_id: technician_id,
-          technician_name: technicianUser.name,
-          previous_technician_id: existingTask.assigned_technician_id,
-          device_id: existingTask.wp_device_id || existingTask.device_id,
-          location: {
-              city: normalizedOrderAddress.city,
-              district: normalizedOrderAddress.district,
-              state: normalizedOrderAddress.state
-          },
-          modified_by: modified_by,
-          reason: null
-      });
+            // Log to assignment history
+            await logToAssignmentHistory(db, {
+                task_id: task_id,
+                task_type: 1,
+                assignment_type: 'Installation',
+                action: 'reassign',
+                assignment_mode: 'manual',
+                technician_id: technician_id,
+                technician_name: technicianUser.name,
+                previous_technician_id: existingTask.assigned_technician_id,
+                device_id: existingTask.wp_device_id || existingTask.device_id,
+                location: {
+                    city: normalizedOrderAddress.city,
+                    district: normalizedOrderAddress.district,
+                    state: normalizedOrderAddress.state
+                },
+                modified_by: modified_by,
+                reason: null
+            });
 
-      return res.status(200).json({
-        status: 'Success',
-        message: `Installation task ${task_id} reassigned successfully.`,
-      });
+            return res.status(200).json({
+                status: 'Success',
+                message: `Installation task ${task_id} reassigned successfully.`,
+            });
+        }
+
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Task update failed. Please try again.',
+        });
+
+    } catch (err) {
+        console.error("Error in ReAssignInstallation:", err);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error',
+        });
     }
-
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Task update failed. Please try again.',
-    });
-
-  } catch (err) {
-    console.error("Error in ReAssignInstallation:", err);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error',
-    });
-  }
 };
 
 
@@ -3633,7 +3640,7 @@ const FetchSelectServiceTask = async (req, res) => {
         // MAIN FETCH PIPELINE
         const allServices = await collection.aggregate([
             { $match: { task_type: 2 } },
-            { $addFields: {   wp_device_id: { $ifNull: ["$device_id", "$wp_device_id"] }} },
+            { $addFields: { wp_device_id: { $ifNull: ["$device_id", "$wp_device_id"] } } },
             {
                 $lookup: {
                     from: "orders",
@@ -4077,107 +4084,107 @@ const AssignService = async (req, res) => {
 
 // ReAssignService
 const ReAssignService = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const serviceRecords = db.collection("service_records");
-    const ordersCollection = db.collection("orders");
+    try {
+        const db = await database.connectToDatabase();
+        const serviceRecords = db.collection("service_records");
+        const ordersCollection = db.collection("orders");
 
-    const { task_id, technician_id, modified_by } = req.body;
+        const { task_id, technician_id, modified_by } = req.body;
 
-    // 1️⃣ Basic validation
-    if (!task_id || !technician_id || !modified_by) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Invalid or missing required fields',
-      });
-    }
+        // 1️⃣ Basic validation
+        if (!task_id || !technician_id || !modified_by) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Invalid or missing required fields',
+            });
+        }
 
-    // 2️⃣ Check if the task exists
-    const existingTask = await serviceRecords.findOne({ task_id });
-    if (!existingTask) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: `Task with task_id ${task_id} not found.`,
-      });
-    }
+        // 2️⃣ Check if the task exists
+        const existingTask = await serviceRecords.findOne({ task_id });
+        if (!existingTask) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: `Task with task_id ${task_id} not found.`,
+            });
+        }
 
-    // 4️⃣ Ensure related order is paid
-    const relatedOrder = await ordersCollection.findOne({
-      wp_device_id: existingTask.wp_device_id || existingTask.device_id,
-    });
+        // 4️⃣ Ensure related order is paid
+        const relatedOrder = await ordersCollection.findOne({
+            wp_device_id: existingTask.wp_device_id || existingTask.device_id,
+        });
 
-    if (!relatedOrder || relatedOrder.paymentStatus?.toLowerCase() !== 'completed') {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Cannot reassign service: related order is not paid.',
-      });
-    }
+        if (!relatedOrder || relatedOrder.paymentStatus?.toLowerCase() !== 'completed') {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Cannot reassign service: related order is not paid.',
+            });
+        }
 
-    // 5️⃣ Fetch technician user to validate district
-    const usersCollection = db.collection("users");
-    const technicianUser = await usersCollection.findOne({ technician_id });
-    if (!technicianUser) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: 'Technician not found',
-      });
-    }
+        // 5️⃣ Fetch technician user to validate district
+        const usersCollection = db.collection("users");
+        const technicianUser = await usersCollection.findOne({ technician_id });
+        if (!technicianUser) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: 'Technician not found',
+            });
+        }
 
-    // 6️⃣ Validate technician district matches order address district
-    const normalizedOrderAddress = normalizeDeliveryAddress(relatedOrder.deliveryAddress || {});
-    const technicianDistrictNormalized = normalizeDeliveryAddress({ district: technicianUser.district || '' }).district;
-    if (normalizedOrderAddress.district !== technicianDistrictNormalized) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Technician district does not match order address district'
-      });
-    }
+        // 6️⃣ Validate technician district matches order address district
+        const normalizedOrderAddress = normalizeDeliveryAddress(relatedOrder.deliveryAddress || {});
+        const technicianDistrictNormalized = normalizeDeliveryAddress({ district: technicianUser.district || '' }).district;
+        if (normalizedOrderAddress.district !== technicianDistrictNormalized) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Technician district does not match order address district'
+            });
+        }
 
-    // 7️⃣ Check if technician is on leave
-    const leaveRequestsCollection = db.collection('leave_requests');
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+        // 7️⃣ Check if technician is on leave
+        const leaveRequestsCollection = db.collection('leave_requests');
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
 
-    const approvedLeaves = await leaveRequestsCollection.find({
-      technician_id: technician_id,
-      status: 'Approved',
-      from_date: { $lte: todayEnd },
-      to_date: { $gte: todayStart }
-    }).toArray();
+        const approvedLeaves = await leaveRequestsCollection.find({
+            technician_id: technician_id,
+            status: 'Approved',
+            from_date: { $lte: todayEnd },
+            to_date: { $gte: todayStart }
+        }).toArray();
 
-    if (approvedLeaves.length > 0) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Technician is on approved leave and cannot be reassigned'
-      });
-    }
+        if (approvedLeaves.length > 0) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Technician is on approved leave and cannot be reassigned'
+            });
+        }
 
-    // 8️⃣ Update task assignment
-    const now = new Date();
-    const updateResult = await serviceRecords.updateOne(
-      { task_id },
-      {
-        $set: {
-          assigned_technician_id: technician_id,
-          modified_by,
-          modified_date: now,
-          pending_reason: null,
-        assigned_date: now,
-        },
-      }
-    );
+        // 8️⃣ Update task assignment
+        const now = new Date();
+        const updateResult = await serviceRecords.updateOne(
+            { task_id },
+            {
+                $set: {
+                    assigned_technician_id: technician_id,
+                    modified_by,
+                    modified_date: now,
+                    pending_reason: null,
+                    assigned_date: now,
+                },
+            }
+        );
 
-    if (updateResult.modifiedCount === 1) {
-      // Get district sellers and send notification emails to admin, seller, and new technician (NOT to user)
-      const districtSellers = await getDistrictSellers(db, normalizedOrderAddress.district);
-      const sellerEmails = districtSellers.map(s => s.email);
-      const adminEmails = ['admin@gmail.com'];
-      const technicianEmail = [technicianUser.email];
-      const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
+        if (updateResult.modifiedCount === 1) {
+            // Get district sellers and send notification emails to admin, seller, and new technician (NOT to user)
+            const districtSellers = await getDistrictSellers(db, normalizedOrderAddress.district);
+            const sellerEmails = districtSellers.map(s => s.email);
+            const adminEmails = ['admin@gmail.com'];
+            const technicianEmail = [technicianUser.email];
+            const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
 
-      const notificationHtml = `
+            const notificationHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
               <h2 style="color: #333;">Service Task Re-assigned</h2>
               <ul style="font-size: 16px; color: #555;">
@@ -4191,46 +4198,46 @@ const ReAssignService = async (req, res) => {
           </div>
       `;
 
-      await sendEmailToMultiple(allNotificationEmails, 'Service Task Re-assigned - IonHive', '', notificationHtml);
+            await sendEmailToMultiple(allNotificationEmails, 'Service Task Re-assigned - IonHive', '', notificationHtml);
 
-      // Log to assignment history
-      await logToAssignmentHistory(db, {
-          task_id: task_id,
-          task_type: 2,
-          assignment_type: 'Service',
-          action: 'reassign',
-          assignment_mode: 'manual',
-          technician_id: technician_id,
-          technician_name: technicianUser.name,
-          previous_technician_id: existingTask.assigned_technician_id,
-          device_id: existingTask.wp_device_id || existingTask.device_id,
-          location: {
-              city: normalizedOrderAddress.city,
-              district: normalizedOrderAddress.district,
-              state: normalizedOrderAddress.state
-          },
-          modified_by: modified_by,
-          reason: null
-      });
+            // Log to assignment history
+            await logToAssignmentHistory(db, {
+                task_id: task_id,
+                task_type: 2,
+                assignment_type: 'Service',
+                action: 'reassign',
+                assignment_mode: 'manual',
+                technician_id: technician_id,
+                technician_name: technicianUser.name,
+                previous_technician_id: existingTask.assigned_technician_id,
+                device_id: existingTask.wp_device_id || existingTask.device_id,
+                location: {
+                    city: normalizedOrderAddress.city,
+                    district: normalizedOrderAddress.district,
+                    state: normalizedOrderAddress.state
+                },
+                modified_by: modified_by,
+                reason: null
+            });
 
-      return res.status(200).json({
-        status: 'Success',
-        message: `Service task ${task_id} reassigned successfully.`,
-      });
+            return res.status(200).json({
+                status: 'Success',
+                message: `Service task ${task_id} reassigned successfully.`,
+            });
+        }
+
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Task update failed. Please try again.',
+        });
+
+    } catch (err) {
+        console.error("Error in ReAssignService:", err);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error',
+        });
     }
-
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Task update failed. Please try again.',
-    });
-
-  } catch (err) {
-    console.error("Error in ReAssignService:", err);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error',
-    });
-  }
 };
 
 // Admin Fetch APIs additions
@@ -4350,10 +4357,10 @@ const GetDistrictsWithSellers = async (req, res) => {
             }
         ]).toArray();
 
-        return res.status(200).json({ 
-            status: 'Success', 
+        return res.status(200).json({
+            status: 'Success',
             data: districts,
-            count: districts.length 
+            count: districts.length
         });
     } catch (error) {
         console.error('Error in GetDistrictsWithSellers:', error);
@@ -4478,1381 +4485,1387 @@ const GetOrdersByDistrict = async (req, res) => {
 };
 
 const GetInstallationsByDistrict = async (req, res) => {
-  try {
-    const { district, status, search } = req.query || {};
-    const { page, limit, skip } = getPaginationParams(req);
+    try {
+        const { district, status, search } = req.query || {};
+        const { page, limit, skip } = getPaginationParams(req);
 
-    const db = await database.connectToDatabase();
-    const ordersCollection = db.collection("orders");
+        const db = await database.connectToDatabase();
+        const ordersCollection = db.collection("orders");
 
-    const matchStage = {
-      orderStatus: "Confirmed",
-      $or: [
-        { paymentStatus: "Completed" },
-        { paymentType: { $regex: /^cod$/i } }
-      ]
-    };
+        const matchStage = {
+            orderStatus: "Confirmed",
+            $or: [
+                { paymentStatus: "Completed" },
+                { paymentType: { $regex: /^cod$/i } }
+            ]
+        };
 
-    if (district && String(district).trim() !== '') {
-      matchStage["deliveryAddress.district"] = new RegExp(`^${String(district).trim()}$`, "i");
-    }
+        if (district && String(district).trim() !== '') {
+            matchStage["deliveryAddress.district"] = new RegExp(`^${String(district).trim()}$`, "i");
+        }
 
-    const buildStatusFilter = (status) => {
-      if (!status) return null;
-      const statusLower = status.toLowerCase();
-      if (statusLower === 'pending') {
-        return { 'service_records.task_status': 'Pending' };
-      } else if (statusLower === 'inprogress' || statusLower === 'in_progress') {
-        return { 'service_records.task_status': { $in: ['In Progress', 'In_Progress', 'in_progress'] } };
-      } else if (statusLower === 'completed') {
-        return { 'service_records.task_status': 'Completed' };
-      } else if (statusLower === 'rejected') {
-        return { 'service_records.task_status': 'Rejected' };
-      } else if (statusLower === 'unassigned') {
-        return { 'service_records.assigned_technician_id': { $in: [null, '', undefined] } };
-      }
-      return null;
-    };
+        const buildStatusFilter = (status) => {
+            if (!status) return null;
+            const statusLower = status.toLowerCase();
+            if (statusLower === 'pending') {
+                return { 'service_records.task_status': 'Pending' };
+            } else if (statusLower === 'inprogress' || statusLower === 'in_progress') {
+                return { 'service_records.task_status': { $in: ['In Progress', 'In_Progress', 'in_progress'] } };
+            } else if (statusLower === 'completed') {
+                return { 'service_records.task_status': 'Completed' };
+            } else if (statusLower === 'rejected') {
+                return { 'service_records.task_status': 'Rejected' };
+            } else if (statusLower === 'unassigned') {
+                return { 'service_records.assigned_technician_id': { $in: [null, '', undefined] } };
+            }
+            return null;
+        };
 
-    const buildSearchFilter = (searchTerm) => {
-      if (!searchTerm || !searchTerm.trim()) return null;
-      const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
-      return {
-        $or: [
-          { 'service_records.task_id': searchRegex },
-          { 'service_records.assigned_technician_id': searchRegex },
-          { wp_device_id: searchRegex },
-          { customOrderId: searchRegex }
-        ]
-      };
-    };
+        const buildSearchFilter = (searchTerm) => {
+            if (!searchTerm || !searchTerm.trim()) return null;
+            const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
+            return {
+                $or: [
+                    { 'service_records.task_id': searchRegex },
+                    { 'service_records.assigned_technician_id': searchRegex },
+                    { wp_device_id: searchRegex },
+                    { customOrderId: searchRegex }
+                ]
+            };
+        };
 
-    const statusFilter = buildStatusFilter(status);
-    const searchFilter = buildSearchFilter(search);
+        const statusFilter = buildStatusFilter(status);
+        const searchFilter = buildSearchFilter(search);
 
-    const filterStage = {};
-    if (statusFilter) Object.assign(filterStage, statusFilter);
-    if (searchFilter) Object.assign(filterStage, searchFilter);
+        const filterStage = {};
+        if (statusFilter) Object.assign(filterStage, statusFilter);
+        if (searchFilter) Object.assign(filterStage, searchFilter);
 
-    const totalCountPipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: "service_records",
-          let: { deviceId: "$wp_device_id" },
-          pipeline: [
+        const totalCountPipeline = [
+            { $match: matchStage },
             {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$wp_device_id", "$$deviceId"] },
-                    { $eq: ["$task_type", 1] }
-                  ]
+                $lookup: {
+                    from: "service_records",
+                    let: { deviceId: "$wp_device_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$wp_device_id", "$$deviceId"] },
+                                        { $eq: ["$task_type", 1] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "service_records"
                 }
-              }
-            }
-          ],
-          as: "service_records"
-        }
-      },
-      {
-        $addFields: {
-          service_records: {
-            $cond: [
-              { $gt: [{ $size: "$service_records" }, 0] },
-              "$service_records",
-              null
-            ]
-          }
-        }
-      },
-      {
-        $match: { service_records: { $ne: null } }
-      }
-    ];
-
-    if (Object.keys(filterStage).length > 0) {
-      totalCountPipeline.push({ $match: filterStage });
-    }
-
-    totalCountPipeline.push({ $count: "total" });
-
-    const countResult = await ordersCollection.aggregate(totalCountPipeline).toArray();
-    const total = countResult.length > 0 ? countResult[0].total : 0;
-
-    const dataPipeline = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: "service_records",
-          let: { deviceId: "$wp_device_id" },
-          pipeline: [
+            },
             {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$wp_device_id", "$$deviceId"] },
-                    { $eq: ["$task_type", 1] }
-                  ]
+                $addFields: {
+                    service_records: {
+                        $cond: [
+                            { $gt: [{ $size: "$service_records" }, 0] },
+                            "$service_records",
+                            null
+                        ]
+                    }
                 }
-              }
-            }
-          ],
-          as: "service_records"
-        }
-      },
-      {
-        $addFields: {
-          service_records: {
-            $cond: [
-              { $gt: [{ $size: "$service_records" }, 0] },
-              "$service_records",
-              null
-            ]
-          }
-        }
-      },
-      {
-        $match: { service_records: { $ne: null } }
-      }
-    ];
-
-    if (Object.keys(filterStage).length > 0) {
-      dataPipeline.push({ $match: filterStage });
-    }
-
-    dataPipeline.push(
-      {
-        $lookup: {
-          from: "users",
-          localField: "user_id",
-          foreignField: "user_id",
-          as: "user"
-        }
-      },
-      {
-        $addFields: {
-          email: {
-            $cond: [
-              { $gt: [{ $size: "$user" }, 0] },
-              { $arrayElemAt: ["$user.email", 0] },
-              null
-            ]
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: "users",
-          let: { techId: { $arrayElemAt: ["$service_records.assigned_technician_id", 0] } },
-          pipeline: [
+            },
             {
-              $match: {
-                $expr: { $eq: ["$employee_id", "$$techId"] }
-              }
+                $match: { service_records: { $ne: null } }
             }
-          ],
-          as: "technicianData"
+        ];
+
+        if (Object.keys(filterStage).length > 0) {
+            totalCountPipeline.push({ $match: filterStage });
         }
-      },
-      {
-        $addFields: {
-          assignedTechnician: {
-            $cond: [
-              { $gt: [{ $size: "$technicianData" }, 0] },
-              {
-                technician_id: { $arrayElemAt: ["$technicianData.employee_id", 0] },
-                technician_name: { $arrayElemAt: ["$technicianData.name", 0] },
-                technician_email: { $arrayElemAt: ["$technicianData.email", 0] },
-                technician_phone: { $arrayElemAt: ["$technicianData.phone", 0] },
-                name: { $arrayElemAt: ["$technicianData.name", 0] },
-                email: { $arrayElemAt: ["$technicianData.email", 0] },
-                phone: { $arrayElemAt: ["$technicianData.phone", 0] }
-              },
-              null
-            ]
-          }
+
+        totalCountPipeline.push({ $count: "total" });
+
+        const countResult = await ordersCollection.aggregate(totalCountPipeline).toArray();
+        const total = countResult.length > 0 ? countResult[0].total : 0;
+
+        const dataPipeline = [
+            { $match: matchStage },
+            {
+                $lookup: {
+                    from: "service_records",
+                    let: { deviceId: "$wp_device_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$wp_device_id", "$$deviceId"] },
+                                        { $eq: ["$task_type", 1] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "service_records"
+                }
+            },
+            {
+                $addFields: {
+                    service_records: {
+                        $cond: [
+                            { $gt: [{ $size: "$service_records" }, 0] },
+                            "$service_records",
+                            null
+                        ]
+                    }
+                }
+            },
+            {
+                $match: { service_records: { $ne: null } }
+            }
+        ];
+
+        if (Object.keys(filterStage).length > 0) {
+            dataPipeline.push({ $match: filterStage });
         }
-      },
-      {
-        $project: { user: 0, technicianData: 0 }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      { $skip: skip },
-      { $limit: limit }
-    );
 
-    const installations = await ordersCollection.aggregate(dataPipeline).toArray();
+        dataPipeline.push(
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user_id",
+                    foreignField: "user_id",
+                    as: "user"
+                }
+            },
+            {
+                $addFields: {
+                    email: {
+                        $cond: [
+                            { $gt: [{ $size: "$user" }, 0] },
+                            { $arrayElemAt: ["$user.email", 0] },
+                            null
+                        ]
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    let: { techId: { $arrayElemAt: ["$service_records.assigned_technician_id", 0] } },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$employee_id", "$$techId"] }
+                            }
+                        }
+                    ],
+                    as: "technicianData"
+                }
+            },
+            {
+                $addFields: {
+                    assignedTechnician: {
+                        $cond: [
+                            { $gt: [{ $size: "$technicianData" }, 0] },
+                            {
+                                technician_id: { $arrayElemAt: ["$technicianData.employee_id", 0] },
+                                technician_name: { $arrayElemAt: ["$technicianData.name", 0] },
+                                technician_email: { $arrayElemAt: ["$technicianData.email", 0] },
+                                technician_phone: { $arrayElemAt: ["$technicianData.phone", 0] },
+                                name: { $arrayElemAt: ["$technicianData.name", 0] },
+                                email: { $arrayElemAt: ["$technicianData.email", 0] },
+                                phone: { $arrayElemAt: ["$technicianData.phone", 0] }
+                            },
+                            null
+                        ]
+                    }
+                }
+            },
+            {
+                $project: { user: 0, technicianData: 0 }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            { $skip: skip },
+            { $limit: limit }
+        );
 
-    return res.status(200).json(formatPaginatedResponse(installations, total, page, limit));
+        const installations = await ordersCollection.aggregate(dataPipeline).toArray();
 
-  } catch (error) {
-    console.error("Error in GetInstallationsByDistrict:", error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: "Failed",
-      message: "Internal Server Error",
-      data: null
-    });
-  }
+        return res.status(200).json(formatPaginatedResponse(installations, total, page, limit));
+
+    } catch (error) {
+        console.error("Error in GetInstallationsByDistrict:", error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: "Failed",
+            message: "Internal Server Error",
+            data: null
+        });
+    }
 };
 
 
 
 // 7) GET: Services by district (service_records.task_type = 2)
 const GetServicesByDistrict = async (req, res) => {
-  try {
-    const { district } = req.query || {};
-    const { page, limit, skip } = getPaginationParams(req);
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
+    try {
+        const { district } = req.query || {};
+        const { page, limit, skip } = getPaginationParams(req);
+        const db = await database.connectToDatabase();
+        const serviceRecordsCollection = db.collection("service_records");
 
-    const baseMatchStage = {
-      task_type: 2
-    };
+        const baseMatchStage = {
+            task_type: 2
+        };
 
-    const countPipeline = [
-      { $match: baseMatchStage },
-      {
-        $addFields: {
-          resolvedDeviceId: {
-            $ifNull: ["$wp_device_id", "$device_id"]
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: "orders",
-          localField: "resolvedDeviceId",
-          foreignField: "wp_device_id",
-          as: "order"
-        }
-      },
-      {
-        $addFields: {
-          order: { $arrayElemAt: ["$order", 0] }
-        }
-      },
-      {
-        $addFields: {
-          orderDelivery: "$order.deliveryAddress"
-        }
-      },
-      ...(district && String(district).trim() !== ''
-        ? [
+        const countPipeline = [
+            { $match: baseMatchStage },
             {
-              $match: {
-                $expr: {
-                  $regexMatch: {
-                    input: { $ifNull: ["$orderDelivery.district", ""] },
-                    regex: new RegExp(String(district).trim(), "i")
-                  }
+                $addFields: {
+                    resolvedDeviceId: {
+                        $ifNull: ["$wp_device_id", "$device_id"]
+                    }
                 }
-              }
-            }
-          ]
-        : []),
-      { $match: { "order.paymentStatus": "Completed" } },
-      { $count: "total" }
-    ];
-
-    const countResult = await serviceRecordsCollection.aggregate(countPipeline).toArray();
-    const total = countResult.length > 0 ? countResult[0].total : 0;
-
-    const pipeline = [
-      { $match: baseMatchStage },
-      {
-        $addFields: {
-          resolvedDeviceId: {
-            $ifNull: ["$wp_device_id", "$device_id"]
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: "orders",
-          localField: "resolvedDeviceId",
-          foreignField: "wp_device_id",
-          as: "order"
-        }
-      },
-      {
-        $addFields: {
-          order: { $arrayElemAt: ["$order", 0] }
-        }
-      },
-      {
-        $addFields: {
-          orderDelivery: "$order.deliveryAddress"
-        }
-      },
-      ...(district && String(district).trim() !== ''
-        ? [
+            },
             {
-              $match: {
-                $expr: {
-                  $regexMatch: {
-                    input: { $ifNull: ["$orderDelivery.district", ""] },
-                    regex: new RegExp(String(district).trim(), "i")
-                  }
+                $lookup: {
+                    from: "orders",
+                    localField: "resolvedDeviceId",
+                    foreignField: "wp_device_id",
+                    as: "order"
                 }
-              }
-            }
-          ]
-        : []),
-      { $match: { "order.paymentStatus": "Completed" } },
-      {
-        $addFields: {
-          addressObject: {
-            $cond: [
-              {
-                $and: [
-                  { $ne: [{ $type: "$address" }, "missing"] },
-                  { $eq: [{ $type: "$address" }, "object"] }
+            },
+            {
+                $addFields: {
+                    order: { $arrayElemAt: ["$order", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    orderDelivery: "$order.deliveryAddress"
+                }
+            },
+            ...(district && String(district).trim() !== ''
+                ? [
+                    {
+                        $match: {
+                            $expr: {
+                                $regexMatch: {
+                                    input: { $ifNull: ["$orderDelivery.district", ""] },
+                                    regex: new RegExp(String(district).trim(), "i")
+                                }
+                            }
+                        }
+                    }
                 ]
-              },
-              "$address",
-              "$orderDelivery"
-            ]
-          }
-        }
-      },
-      {
-        $addFields: {
-          address: { $ifNull: ["$addressObject", "$address"] },
-          city: {
-            $ifNull: ["$city", { $ifNull: ["$addressObject.city", "$orderDelivery.city"] }]
-          },
-          district: {
-            $ifNull: ["$district", { $ifNull: ["$addressObject.district", "$orderDelivery.district"] }]
-          },
-          state: {
-            $ifNull: ["$state", { $ifNull: ["$addressObject.state", "$orderDelivery.state"] }]
-          },
-          country: {
-            $ifNull: ["$country", { $ifNull: ["$addressObject.country", "$orderDelivery.country"] }]
-          },
-          pincode: {
-            $ifNull: ["$pincode", { $ifNull: ["$addressObject.pincode", "$orderDelivery.pincode"] }]
-          },
-          addressline1: {
-            $ifNull: ["$addressline1", { $ifNull: ["$addressObject.addressline1", "$orderDelivery.addressline1"] }]
-          },
-          addressline2: {
-            $ifNull: ["$addressline2", { $ifNull: ["$addressObject.addressline2", "$orderDelivery.addressline2"] }]
-          }
-        }
-      },
-      {
-        $addFields: {
-          wp_device_id: { $ifNull: ["$wp_device_id", "$resolvedDeviceId"] }
-        }
-      },
-      {
-        $project: {
-          device_id: 0,
-          order: 0,
-          orderDelivery: 0,
-          addressObject: 0,
-          resolvedDeviceId: 0
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      { $skip: skip },
-      { $limit: limit }
-    ];
+                : []),
+            { $match: { "order.paymentStatus": "Completed" } },
+            { $count: "total" }
+        ];
 
-    const services = await serviceRecordsCollection.aggregate(pipeline).toArray();
+        const countResult = await serviceRecordsCollection.aggregate(countPipeline).toArray();
+        const total = countResult.length > 0 ? countResult[0].total : 0;
 
-    return res.status(200).json(formatPaginatedResponse(services, total, page, limit));
+        const pipeline = [
+            { $match: baseMatchStage },
+            {
+                $addFields: {
+                    resolvedDeviceId: {
+                        $ifNull: ["$wp_device_id", "$device_id"]
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "orders",
+                    localField: "resolvedDeviceId",
+                    foreignField: "wp_device_id",
+                    as: "order"
+                }
+            },
+            {
+                $addFields: {
+                    order: { $arrayElemAt: ["$order", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    orderDelivery: "$order.deliveryAddress"
+                }
+            },
+            ...(district && String(district).trim() !== ''
+                ? [
+                    {
+                        $match: {
+                            $expr: {
+                                $regexMatch: {
+                                    input: { $ifNull: ["$orderDelivery.district", ""] },
+                                    regex: new RegExp(String(district).trim(), "i")
+                                }
+                            }
+                        }
+                    }
+                ]
+                : []),
+            { $match: { "order.paymentStatus": "Completed" } },
+            {
+                $addFields: {
+                    addressObject: {
+                        $cond: [
+                            {
+                                $and: [
+                                    { $ne: [{ $type: "$address" }, "missing"] },
+                                    { $eq: [{ $type: "$address" }, "object"] }
+                                ]
+                            },
+                            "$address",
+                            "$orderDelivery"
+                        ]
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    address: { $ifNull: ["$addressObject", "$address"] },
+                    city: {
+                        $ifNull: ["$city", { $ifNull: ["$addressObject.city", "$orderDelivery.city"] }]
+                    },
+                    district: {
+                        $ifNull: ["$district", { $ifNull: ["$addressObject.district", "$orderDelivery.district"] }]
+                    },
+                    state: {
+                        $ifNull: ["$state", { $ifNull: ["$addressObject.state", "$orderDelivery.state"] }]
+                    },
+                    country: {
+                        $ifNull: ["$country", { $ifNull: ["$addressObject.country", "$orderDelivery.country"] }]
+                    },
+                    pincode: {
+                        $ifNull: ["$pincode", { $ifNull: ["$addressObject.pincode", "$orderDelivery.pincode"] }]
+                    },
+                    addressline1: {
+                        $ifNull: ["$addressline1", { $ifNull: ["$addressObject.addressline1", "$orderDelivery.addressline1"] }]
+                    },
+                    addressline2: {
+                        $ifNull: ["$addressline2", { $ifNull: ["$addressObject.addressline2", "$orderDelivery.addressline2"] }]
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    wp_device_id: { $ifNull: ["$wp_device_id", "$resolvedDeviceId"] }
+                }
+            },
+            {
+                $project: {
+                    device_id: 0,
+                    order: 0,
+                    orderDelivery: 0,
+                    addressObject: 0,
+                    resolvedDeviceId: 0
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            { $skip: skip },
+            { $limit: limit }
+        ];
 
-  } catch (error) {
-    console.error('Error in GetServicesByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
+        const services = await serviceRecordsCollection.aggregate(pipeline).toArray();
+
+        return res.status(200).json(formatPaginatedResponse(services, total, page, limit));
+
+    } catch (error) {
+        console.error('Error in GetServicesByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
+    }
 };
 
 
 const FetchInstalledDevicesForRequests = async (req, res) => {
-  try {
-    const { district } = req.body || {};
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
-    const ordersCollection = db.collection("orders");
-    const usersCollection = db.collection("users");
+    try {
+        const { district } = req.body || {};
+        const db = await database.connectToDatabase();
 
-    const installations = await serviceRecordsCollection.find({
-      task_type: 1,
-      task_status: { $regex: /^completed$/i }
-    }).toArray();
+        const serviceRecords = db.collection("service_records");
+        const ordersCol = db.collection("orders");
+        const usersCol = db.collection("users");
+        const deviceDetailsCol = db.collection("device_details");
+        const productModelsCol = db.collection("product_models");
 
-    if (!installations.length) {
-      return res.status(200).json({ status: 'Success', data: [] });
+        const normalize = (v) => (v ? String(v).trim().toLowerCase() : "");
+
+        const installations = await serviceRecords
+            .find({ task_type: 1, task_status: { $regex: /^completed$/i } })
+            .project({ task_id: 1, wp_device_id: 1, device_id: 1, task_created_by_user_id: 1, deliveryAddress: 1, address: 1, product: 1, selectedDuration: 1 })
+            .toArray();
+
+        if (!installations.length) {
+            return res.status(200).json({ status: "Success", data: [] });
+        }
+
+        const deviceIds = installations
+            .map((i) => i.wp_device_id || i.device_id)
+            .filter(Boolean);
+
+        const [manualTasks, orders, deviceDetails] = await Promise.all([
+            serviceRecords
+                .find(
+                    {
+                        task_type: 3,
+                        $or: [
+                            { wp_device_id: { $in: deviceIds } },
+                            { device_id: { $in: deviceIds } },
+                        ],
+                    },
+                    { projection: { wp_device_id: 1, device_id: 1, task_status: 1 } }
+                )
+                .toArray(),
+
+            ordersCol
+                .find({ wp_device_id: { $in: deviceIds } })
+                .project({ wp_device_id: 1, user_id: 1, customOrderId: 1, _id: 1, deliveryAddress: 1, model_id: 1, productModelId: 1, modelName: 1, modelType: 1, modeltype: 1, selectedDuration: 1 })
+                .toArray(),
+
+            deviceDetailsCol
+                .find({ wp_device_id: { $in: deviceIds } })
+                .project({ wp_device_id: 1, model_id: 1, model_name: 1, model_type: 1, plan_config: 1, mac_id: 1, enter_mac_id: 1, selectedDuration: 1, _id: 1 })
+                .toArray(),
+        ]);
+
+        const blockedDevices = new Set();
+        manualTasks.forEach((t) => {
+            if (normalize(t.task_status) !== "completed") {
+                blockedDevices.add(normalize(t.wp_device_id || t.device_id));
+            }
+        });
+
+        const orderMap = new Map(orders.map((o) => [o.wp_device_id, o]));
+        const detailMap = new Map(deviceDetails.map((d) => [d.wp_device_id, d]));
+
+        const modelIds = new Set();
+        deviceDetails.forEach((d) => d.model_id && modelIds.add(String(d.model_id)));
+        orders.forEach((o) => {
+            const mid = o.model_id || o.productModelId;
+            if (mid) modelIds.add(String(mid));
+        });
+
+        const userIds = new Set();
+        installations.forEach((i) => {
+            if (i.task_created_by_user_id) userIds.add(i.task_created_by_user_id);
+            const o = orderMap.get(i.wp_device_id || i.device_id);
+            if (o?.user_id) userIds.add(o.user_id);
+        });
+
+        const [users, productModels] = await Promise.all([
+            usersCol
+                .find({ user_id: { $in: [...userIds] } })
+                .project({ user_id: 1, name: 1, email: 1, phone: 1 })
+                .toArray(),
+
+            modelIds.size > 0
+                ? productModelsCol
+                    .find({
+                        $or: [
+                            { model_id: { $in: [...modelIds] } },
+                            {
+                                _id: {
+                                    $in: [...modelIds].map(id => {
+                                        try { return new ObjectId(id); } catch { return null; }
+                                    }).filter(Boolean)
+                                }
+                            },
+                        ],
+                    })
+                    .project({ model_id: 1, _id: 1, id: 1, model_name: 1, modelName: 1, name: 1, model_type: 1, modelType: 1, modeltype: 1 })
+                    .toArray()
+                : [],
+        ]);
+
+        const userMap = new Map(users.map((u) => [u.user_id, u]));
+
+        const modelMap = new Map();
+        productModels.forEach((m) => {
+            const id = String(m.model_id || m._id || m.id);
+            modelMap.set(id, m);
+        });
+
+        const normalizedDistrict = normalize(district);
+
+        // --- Build final records ---
+        const devices = installations
+            .map((i) => {
+                const deviceId = i.wp_device_id || i.device_id;
+                const normKey = normalize(deviceId);
+
+                if (blockedDevices.has(normKey)) return null;
+
+                const order = orderMap.get(deviceId) || null;
+                const detail = detailMap.get(deviceId) || null;
+                const ownerId = i.task_created_by_user_id || order?.user_id || null;
+                const owner = userMap.get(ownerId) || null;
+
+                const addr =
+                    i.deliveryAddress ||
+                    i.address ||
+                    order?.deliveryAddress ||
+                    {};
+
+                const normalizedAddr = normalizeDeliveryAddress(addr);
+
+                const plan = detail?.plan_config || {};
+                const modelId =
+                    detail?.model_id ||
+                    order?.model_id ||
+                    order?.productModelId ||
+                    null;
+
+                const model = modelId ? modelMap.get(String(modelId)) : null;
+
+                return {
+                    task_id: i.task_id || null,
+                    wp_device_id: deviceId,
+                    user_id: ownerId,
+                    customer_name: owner?.name || normalizedAddr?.name || null,
+                    customer_email: owner?.email || normalizedAddr?.email || null,
+                    customer_phone: owner?.phone || normalizedAddr?.phone || null,
+                    district: normalizedAddr.district || "",
+                    state: normalizedAddr.state || "",
+                    city: normalizedAddr.city || "",
+                    deliveryAddress: addr || {},
+
+                    model_id: modelId,
+                    model_name:
+                        detail?.model_name ||
+                        order?.modelName ||
+                        i.product?.model_name ||
+                        model?.model_name ||
+                        model?.modelName ||
+                        model?.name ||
+                        null,
+
+                    model_type:
+                        detail?.model_type ||
+                        order?.modelType ||
+                        order?.modeltype ||
+                        model?.model_type ||
+                        model?.modelType ||
+                        model?.modeltype ||
+                        null,
+
+                    current_plan:
+                        plan?.name ||
+                        plan?.planName ||
+                        plan?.plan ||
+                        plan?.totalWaterLimit ||
+                        null,
+
+                    current_plan_end_date: plan?.endDate || null,
+
+                    current_duration: resolvePlanDurationFromSources(
+                        plan,
+                        detail?.selectedDuration,
+                        order?.selectedDuration,
+                        i?.selectedDuration
+                    ),
+
+                    mac_id: detail?.mac_id || detail?.enter_mac_id || null,
+                    device_detail_id: detail?._id ? String(detail._id) : null,
+
+                    customOrderId: order?.customOrderId || null,
+                    order_id: order?._id ? String(order._id) : null,
+                };
+            })
+            .filter(Boolean)
+            .filter((d) =>
+                !normalizedDistrict
+                    ? true
+                    : normalize(d.district) === normalizedDistrict
+            );
+
+        return res.status(200).json({ status: "Success", data: devices });
+    } catch (error) {
+        console.error("FetchInstalledDevicesForRequests Error:", error);
+        logger?.error?.(error);
+        return res
+            .status(500)
+            .json({ status: "Failed", message: "Internal Server Error" });
     }
-
-    const normalizeDeviceKey = (value) => {
-      if (value === null || value === undefined) {
-        return '';
-      }
-      const stringValue = String(value).trim();
-      return stringValue.toLowerCase();
-    };
-
-    const deviceIds = installations
-      .map(item => item.wp_device_id || item.device_id)
-      .filter(Boolean);
-
-    const manualTasks = deviceIds.length
-      ? await serviceRecordsCollection.find(
-          {
-            task_type: 3,
-            $or: [
-              { wp_device_id: { $in: deviceIds } },
-              { device_id: { $in: deviceIds } }
-            ]
-          },
-          { projection: { wp_device_id: 1, device_id: 1, task_status: 1 } }
-        ).toArray()
-      : [];
-
-    const blockedDeviceIds = new Set();
-    manualTasks.forEach(task => {
-      const status = String(task?.task_status || '').trim().toLowerCase();
-      if (status !== 'completed') {
-        const id = task?.wp_device_id || task?.device_id;
-        const normalized = normalizeDeviceKey(id);
-        if (normalized) {
-          blockedDeviceIds.add(normalized);
-        }
-      }
-    });
-
-    const orders = deviceIds.length
-      ? await ordersCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
-      : [];
-
-    const deviceDetailsCollection = db.collection("device_details");
-    const deviceDetails = deviceIds.length
-      ? await deviceDetailsCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
-      : [];
-
-    // Get product models
-    const modelIds = [...new Set(deviceDetails.map(device => device.model_id).filter(Boolean))];
-    const productModelsCollection = db.collection("product_models");
-    const productModels = await productModelsCollection.find({}).toArray();
-
-    const orderMap = new Map();
-    orders.forEach(order => {
-      if (order?.wp_device_id) {
-        orderMap.set(order.wp_device_id, order);
-      }
-    });
-
-    const deviceDetailMap = new Map();
-    deviceDetails.forEach(detail => {
-      if (detail?.wp_device_id) {
-        deviceDetailMap.set(detail.wp_device_id, detail);
-      }
-    });
-
-    const userIdsSet = new Set();
-    installations.forEach(item => {
-      if (item.task_created_by_user_id) {
-        userIdsSet.add(item.task_created_by_user_id);
-      }
-      const order = orderMap.get(item.wp_device_id || item.device_id);
-      if (order?.user_id) {
-        userIdsSet.add(order.user_id);
-      }
-    });
-
-    const userIds = Array.from(userIdsSet);
-    const users = userIds.length
-      ? await usersCollection.find({ user_id: { $in: userIds } }).toArray()
-      : [];
-    const userMap = new Map();
-    users.forEach(user => {
-      userMap.set(user.user_id, user);
-    });
-
-    const modelMap = new Map();
-    productModels.forEach(model => {
-      const id = model.model_id || model._id?.toString() || model.id;
-      if (id) {
-        modelMap.set(id, model);
-        // Also set by string version for cross-matching
-        modelMap.set(id.toString(), model);
-      }
-    });
-
-    const normalizedDistrict = String(district || '').trim().toLowerCase();
-
-    const devices = installations
-      .map(item => {
-        const deviceId = item.wp_device_id || item.device_id || '';
-        const normalizedDeviceKey = normalizeDeviceKey(deviceId);
-        if (blockedDeviceIds.has(normalizedDeviceKey)) {
-          return null;
-        }
-        const order = orderMap.get(deviceId) || null;
-        const detail = deviceDetailMap.get(deviceId) || null;
-        const ownerUserId = item.task_created_by_user_id || order?.user_id || null;
-        const owner = ownerUserId !== null ? userMap.get(ownerUserId) || null : null;
-        const addressSource = item.deliveryAddress || item.address || order?.deliveryAddress || {};
-        const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
-        const planConfig = detail?.plan_config || {};
-        const currentPlan =
-          planConfig?.name ||
-          planConfig?.planName ||
-          planConfig?.plan ||
-          planConfig?.totalWaterLimit ||
-          null;
-        const currentPlanEndDate = planConfig?.endDate || null;
-        const currentDuration = resolvePlanDurationFromSources(
-          planConfig,
-          detail?.selectedDuration,
-          order?.selectedDuration,
-          item?.selectedDuration
-        );
-        const macId = detail?.mac_id || detail?.enter_mac_id || null;
-        const modelId =
-          detail?.model_id ||
-          order?.model_id ||
-          order?.productModelId ||
-          null;
-        const modelName =
-          detail?.model_name ||
-          order?.modelName ||
-          item.product?.model_name ||
-          modelMap.get(modelId)?.model_name ||
-          modelMap.get(modelId)?.modelName ||
-          modelMap.get(modelId)?.name ||
-          null;
-        const modelType =
-          detail?.model_type ||
-          order?.modelType ||
-          order?.modeltype ||
-          modelMap.get(modelId)?.model_type ||
-          modelMap.get(modelId)?.modelType ||
-          modelMap.get(modelId)?.modeltype ||
-          null;
-        const detailId = detail?._id ? detail._id.toString() : null;
-
-        return {
-          task_id: item.task_id || null,
-          wp_device_id: deviceId,
-          user_id: ownerUserId,
-          customer_name: owner?.name || normalizedAddress?.name || null,
-          customer_email: owner?.email || normalizedAddress?.email || null,
-          customer_phone: owner?.phone || normalizedAddress?.phone || null,
-          district: normalizedAddress.district || '',
-          state: normalizedAddress.state || '',
-          city: normalizedAddress.city || '',
-          deliveryAddress: addressSource || {},
-          model_id: modelId,
-          model_name: modelName,
-          model_type: modelType,
-          current_plan: currentPlan,
-          current_plan_end_date: currentPlanEndDate,
-          current_duration: currentDuration,
-          mac_id: macId,
-          device_detail_id: detailId,
-          customOrderId: order?.customOrderId || null,
-          order_id: order?._id ? order._id.toString() : null
-        };
-      })
-      .filter(record => {
-        if (!record) {
-          return false;
-        }
-        if (!normalizedDistrict) {
-          return true;
-        }
-        return record.district && record.district.toLowerCase() === normalizedDistrict;
-      });
-
-    return res.status(200).json({ status: 'Success', data: devices });
-  } catch (error) {
-    console.error('Error in FetchInstalledDevicesForRequests:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
+
 const CreateManualRequest = async (req, res) => {
-  try {
-    const {
-      wp_device_id,
-      customer_user_id,
-      request_source,
-      priority,
-      preferred_schedule,
-      address,
-      assigned_technician_id,
-      technician_id,
-      request_type
-    } = req.body || {};
+    try {
+        const {
+            wp_device_id,
+            customer_user_id,
+            request_source,
+            priority,
+            preferred_schedule,
+            address,
+            assigned_technician_id,
+            technician_id,
+            request_type
+        } = req.body || {};
 
-    const deviceId = typeof wp_device_id === 'string' ? wp_device_id.trim() : '';
-    const parsedCustomerId = Number(customer_user_id);
-    const requestedTechnicianId = typeof assigned_technician_id === 'string' && assigned_technician_id.trim()
-      ? assigned_technician_id.trim()
-      : typeof technician_id === 'string' && technician_id.trim()
-        ? technician_id.trim()
-        : '';
+        const deviceId = typeof wp_device_id === 'string' ? wp_device_id.trim() : '';
+        const parsedCustomerId = Number(customer_user_id);
+        const requestedTechnicianId = typeof assigned_technician_id === 'string' && assigned_technician_id.trim()
+            ? assigned_technician_id.trim()
+            : typeof technician_id === 'string' && technician_id.trim()
+                ? technician_id.trim()
+                : '';
 
-    const normalizedRequestType = typeof request_type === 'string' ? request_type.trim().toLowerCase() : '';
-    const requestTypeValue = normalizedRequestType === 'return' || normalizedRequestType === 'renewal' ? normalizedRequestType : '';
+        const normalizedRequestType = typeof request_type === 'string' ? request_type.trim().toLowerCase() : '';
+        const requestTypeValue = normalizedRequestType === 'return' || normalizedRequestType === 'renewal' ? normalizedRequestType : '';
 
-    if (!deviceId || !Number.isInteger(parsedCustomerId)) {
-      return res.status(400).json({ status: 'Failed', message: 'wp_device_id and customer_user_id are required' });
-    }
-
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
-    const ordersCollection = db.collection("orders");
-    const usersCollection = db.collection("users");
-    const deviceDetailsCollection = db.collection("device_details");
-    const technicianDetailsCollection = db.collection("technician_details");
-
-    const customerUser = await usersCollection.findOne({ user_id: parsedCustomerId });
-    if (!customerUser) {
-      return res.status(404).json({ status: 'Failed', message: 'Customer not found' });
-    }
-
-    const installationRecord = await serviceRecordsCollection.findOne({ wp_device_id: deviceId, task_type: 1 });
-    if (!installationRecord) {
-      return res.status(404).json({ status: 'Failed', message: 'Installation record not found for the device' });
-    }
-    if (!installationRecord.task_status || installationRecord.task_status.toLowerCase() !== 'completed') {
-      return res.status(400).json({ status: 'Failed', message: 'Installation is not completed for the selected device' });
-    }
-
-    const orderDoc = await ordersCollection.findOne({ wp_device_id: deviceId });
-    const deviceDetail = await deviceDetailsCollection.findOne({ wp_device_id: deviceId });
-
-    if (!deviceDetail) {
-      return res.status(404).json({ status: 'Failed', message: 'Device details not found for the selected device' });
-    }
-
-    // Fetch product model to get model object id
-    const productModelsCollection = db.collection('product_models');
-    const productModel = deviceDetail.model_id ? await productModelsCollection.findOne({ model_id: deviceDetail.model_id }) : null;
-
-    const addressSource = address && typeof address === 'object'
-      ? address
-      : installationRecord.deliveryAddress || installationRecord.address || orderDoc?.deliveryAddress || {};
-    const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
-
-    let requester = null;
-    if (req.user?.userId) {
-      try {
-        requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
-      } catch (err) {
-        requester = null;
-      }
-    }
-
-    if (req.user?.role_id === 4) {
-      const sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
-      const requestDistrict = String(normalizedAddress.district || '').trim().toLowerCase();
-      if (sellerDistrict && requestDistrict && sellerDistrict !== requestDistrict) {
-        return res.status(403).json({ status: 'Failed', message: 'Seller can only create requests within assigned district' });
-      }
-    }
-
-    let technician = null;
-    if (requestedTechnicianId) {
-      technician = await usersCollection.findOne({ technician_id: requestedTechnicianId });
-      if (!technician) {
-        return res.status(404).json({ status: 'Failed', message: 'Technician not found' });
-      }
-    }
-
-    if (requestedTechnicianId) {
-      const technicianDistrict = normalizeDeliveryAddress({ district: technician.district || technician.assigned_district || '' }).district;
-      const requestDistrict = normalizedAddress.district || '';
-      if (technicianDistrict && requestDistrict && technicianDistrict.toLowerCase() !== requestDistrict.toLowerCase()) {
-        return res.status(400).json({ status: 'Failed', message: 'Technician district does not match request district' });
-      }
-    }
-
-    const lastTask = await serviceRecordsCollection.find().sort({ task_id: -1 }).limit(1).toArray();
-    const nextTaskId = lastTask.length > 0 ? lastTask[0].task_id + 1 : 1;
-    const now = new Date();
-
-    const planConfig = deviceDetail?.plan_config || {};
-    const currentPlan =
-      planConfig?.name ||
-      planConfig?.planName ||
-      planConfig?.plan ||
-      planConfig?.totalWaterLimit ||
-      null;
-    const currentPlanEndDate = planConfig?.endDate || null;
-    const currentDuration = resolvePlanDuration(planConfig);
-    const macId = deviceDetail?.mac_id || deviceDetail?.enter_mac_id || null;
-    const modelName = deviceDetail?.model_name || orderDoc?.modelName || installationRecord?.product?.model_name || null;
-    const modelType = deviceDetail?.model_type || orderDoc?.modelType || null;
-    const modelId = deviceDetail?.model_id || orderDoc?.model_id || null;
-    const detailId = deviceDetail?._id ? deviceDetail._id.toString() : null;
-
-    const productSnapshot = buildProductSnapshot({
-      deviceId,
-      modelName,
-      planSources: [
-        req.body?.product?.selectedPlan,
-        req.body?.selectedPlan,
-        installationRecord?.product?.selectedPlan,
-        orderDoc?.selectedPlan,
-        deviceDetail?.selectedPlan,
-        deviceDetail?.plan_config?.selectedPlan,
-        deviceDetail?.plan_config?.plan,
-        deviceDetail?.plan_config?.plans,
-        deviceDetail?.plan_config
-      ],
-      durationSources: [
-        req.body?.product?.selectedDuration,
-        req.body?.selectedDuration,
-        installationRecord?.product?.selectedDuration,
-        orderDoc?.selectedDuration,
-        deviceDetail?.selectedDuration,
-        deviceDetail?.plan_config?.selectedDuration,
-        deviceDetail?.plan_config?.duration,
-        deviceDetail?.plan_config?.duration_details,
-        deviceDetail?.plan_config?.durationDetails
-      ]
-    });
-
-    let taskStatus = 'Unassigned';
-    let assignedDate = null;
-    let assignmentHistory = [];
-    let assignedBy = null;
-    let modifiedBy = null;
-    let modifiedDate = null;
-    let otp = null;
-
-    if (requestedTechnicianId) {
-      taskStatus = 'Pending';
-      assignedDate = now;
-      assignedBy = requester?.email || 'system';
-      modifiedBy = assignedBy;
-      modifiedDate = now;
-      otp = Math.floor(100000 + Math.random() * 900000);
-      assignmentHistory = [
-        {
-          technician_id: requestedTechnicianId,
-          assigned_by: assignedBy,
-          assigned_date: now
+        if (!deviceId || !Number.isInteger(parsedCustomerId)) {
+            return res.status(400).json({ status: 'Failed', message: 'wp_device_id and customer_user_id are required' });
         }
-      ];
-    }
 
-    const newTask = {
-      task_id: nextTaskId,
-      task_type: 3,
-      task_status: taskStatus,
-      wp_device_id: deviceId,
-      task_created_by_user_id: customerUser.user_id,
-      task_created_by_user_email: customerUser.email,
-      customer_phone: customerUser.phone || null,
-      created_date: now,
-      created_by: requester?.email || customerUser.email,
-      created_by_user_id: requester?.user_id || null,
-      created_by_role_id: req.user?.role_id || null,
-      request_source: request_source || 'manual',
-      request_type: requestTypeValue || null,
-      priority: priority || 'normal',
-      preferred_schedule: preferred_schedule || null,
-      assigned_technician_id: requestedTechnicianId || null,
-      assigned_date: assignedDate,
-      pending_reason: null,
-      assignment_history: assignmentHistory,
-      deliveryAddress: addressSource || {},
-      district: normalizedAddress.district || '',
-      state: normalizedAddress.state || '',
-      city: normalizedAddress.city || '',
-      customOrderId: orderDoc?.customOrderId || null,
-      order_user_id: orderDoc?.user_id || customerUser.user_id,
-      order_reference_id: orderDoc?._id ? orderDoc._id.toString() : null,
-      model_id: modelId,
-      model_object_id: productModel?._id ? productModel._id.toString() : null,
-      model_name: modelName,
-      model_type: modelType,
-      current_plan: currentPlan,
-      current_plan_end_date: currentPlanEndDate,
-      current_duration: currentDuration,
-      mac_id: macId,
-      device_detail_id: detailId,
-      assigned_by: assignedBy,
-      modified_by: modifiedBy,
-      modified_date: modifiedDate,
-      otp,
-      ...(productSnapshot ? { product: productSnapshot } : {})
-    };
+        const db = await database.connectToDatabase();
+        const serviceRecordsCollection = db.collection("service_records");
+        const ordersCollection = db.collection("orders");
+        const usersCollection = db.collection("users");
+        const deviceDetailsCollection = db.collection("device_details");
+        const technicianDetailsCollection = db.collection("technician_details");
 
-    Object.keys(newTask).forEach(key => {
-      if (newTask[key] === undefined) {
-        delete newTask[key];
-      }
-    });
-
-    const insertResult = await serviceRecordsCollection.insertOne(newTask);
-    newTask._id = insertResult.insertedId;
-
-    if (requestedTechnicianId) {
-      await technicianDetailsCollection.updateOne(
-        { technician_id: requestedTechnicianId },
-        {
-          $set: {
-            user_id: technician.user_id,
-            role_id: technician.role_id,
-            email: technician.email,
-            technician_id: requestedTechnicianId,
-            status: true
-          },
-          $inc: { total_assigned_services: 1 }
-        },
-        { upsert: true }
-      );
-
-      let customerEmail = newTask.task_created_by_user_email || null;
-      if (!customerEmail && newTask.task_created_by_user_id) {
-        const customer = await usersCollection.findOne({ user_id: newTask.task_created_by_user_id });
-        if (customer?.email) {
-          customerEmail = customer.email;
+        const customerUser = await usersCollection.findOne({ user_id: parsedCustomerId });
+        if (!customerUser) {
+            return res.status(404).json({ status: 'Failed', message: 'Customer not found' });
         }
-      }
 
-      if (customerEmail && otp) {
-        await sendAssignServiceEmail(customerEmail, otp);
-      }
+        const installationRecord = await serviceRecordsCollection.findOne({ wp_device_id: deviceId, task_type: 1 });
+        if (!installationRecord) {
+            return res.status(404).json({ status: 'Failed', message: 'Installation record not found for the device' });
+        }
+        if (!installationRecord.task_status || installationRecord.task_status.toLowerCase() !== 'completed') {
+            return res.status(400).json({ status: 'Failed', message: 'Installation is not completed for the selected device' });
+        }
+
+        const orderDoc = await ordersCollection.findOne({ wp_device_id: deviceId });
+        const deviceDetail = await deviceDetailsCollection.findOne({ wp_device_id: deviceId });
+
+        if (!deviceDetail) {
+            return res.status(404).json({ status: 'Failed', message: 'Device details not found for the selected device' });
+        }
+
+        // Fetch product model to get model object id
+        const productModelsCollection = db.collection('product_models');
+        const productModel = deviceDetail.model_id ? await productModelsCollection.findOne({ model_id: deviceDetail.model_id }) : null;
+
+        const addressSource = address && typeof address === 'object'
+            ? address
+            : installationRecord.deliveryAddress || installationRecord.address || orderDoc?.deliveryAddress || {};
+        const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
+
+        let requester = null;
+        if (req.user?.userId) {
+            try {
+                requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
+            } catch (err) {
+                requester = null;
+            }
+        }
+
+        if (req.user?.role_id === 4) {
+            const sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
+            const requestDistrict = String(normalizedAddress.district || '').trim().toLowerCase();
+            if (sellerDistrict && requestDistrict && sellerDistrict !== requestDistrict) {
+                return res.status(403).json({ status: 'Failed', message: 'Seller can only create requests within assigned district' });
+            }
+        }
+
+        let technician = null;
+        if (requestedTechnicianId) {
+            technician = await usersCollection.findOne({ technician_id: requestedTechnicianId });
+            if (!technician) {
+                return res.status(404).json({ status: 'Failed', message: 'Technician not found' });
+            }
+        }
+
+        if (requestedTechnicianId) {
+            const technicianDistrict = normalizeDeliveryAddress({ district: technician.district || technician.assigned_district || '' }).district;
+            const requestDistrict = normalizedAddress.district || '';
+            if (technicianDistrict && requestDistrict && technicianDistrict.toLowerCase() !== requestDistrict.toLowerCase()) {
+                return res.status(400).json({ status: 'Failed', message: 'Technician district does not match request district' });
+            }
+        }
+
+        const lastTask = await serviceRecordsCollection.find().sort({ task_id: -1 }).limit(1).toArray();
+        const nextTaskId = lastTask.length > 0 ? lastTask[0].task_id + 1 : 1;
+        const now = new Date();
+
+        const planConfig = deviceDetail?.plan_config || {};
+        const currentPlan =
+            planConfig?.name ||
+            planConfig?.planName ||
+            planConfig?.plan ||
+            planConfig?.totalWaterLimit ||
+            null;
+        const currentPlanEndDate = planConfig?.endDate || null;
+        const currentDuration = resolvePlanDuration(planConfig);
+        const macId = deviceDetail?.mac_id || deviceDetail?.enter_mac_id || null;
+        const modelName = deviceDetail?.model_name || orderDoc?.modelName || installationRecord?.product?.model_name || null;
+        const modelType = deviceDetail?.model_type || orderDoc?.modelType || null;
+        const modelId = deviceDetail?.model_id || orderDoc?.model_id || null;
+        const detailId = deviceDetail?._id ? deviceDetail._id.toString() : null;
+
+        const productSnapshot = buildProductSnapshot({
+            deviceId,
+            modelName,
+            planSources: [
+                req.body?.product?.selectedPlan,
+                req.body?.selectedPlan,
+                installationRecord?.product?.selectedPlan,
+                orderDoc?.selectedPlan,
+                deviceDetail?.selectedPlan,
+                deviceDetail?.plan_config?.selectedPlan,
+                deviceDetail?.plan_config?.plan,
+                deviceDetail?.plan_config?.plans,
+                deviceDetail?.plan_config
+            ],
+            durationSources: [
+                req.body?.product?.selectedDuration,
+                req.body?.selectedDuration,
+                installationRecord?.product?.selectedDuration,
+                orderDoc?.selectedDuration,
+                deviceDetail?.selectedDuration,
+                deviceDetail?.plan_config?.selectedDuration,
+                deviceDetail?.plan_config?.duration,
+                deviceDetail?.plan_config?.duration_details,
+                deviceDetail?.plan_config?.durationDetails
+            ]
+        });
+
+        let taskStatus = 'Unassigned';
+        let assignedDate = null;
+        let assignmentHistory = [];
+        let assignedBy = null;
+        let modifiedBy = null;
+        let modifiedDate = null;
+        let otp = null;
+
+        if (requestedTechnicianId) {
+            taskStatus = 'Pending';
+            assignedDate = now;
+            assignedBy = requester?.email || 'system';
+            modifiedBy = assignedBy;
+            modifiedDate = now;
+            otp = Math.floor(100000 + Math.random() * 900000);
+            assignmentHistory = [
+                {
+                    technician_id: requestedTechnicianId,
+                    assigned_by: assignedBy,
+                    assigned_date: now
+                }
+            ];
+        }
+
+        const newTask = {
+            task_id: nextTaskId,
+            task_type: 3,
+            task_status: taskStatus,
+            wp_device_id: deviceId,
+            task_created_by_user_id: customerUser.user_id,
+            task_created_by_user_email: customerUser.email,
+            customer_phone: customerUser.phone || null,
+            created_date: now,
+            created_by: requester?.email || customerUser.email,
+            created_by_user_id: requester?.user_id || null,
+            created_by_role_id: req.user?.role_id || null,
+            request_source: request_source || 'manual',
+            request_type: requestTypeValue || null,
+            priority: priority || 'normal',
+            preferred_schedule: preferred_schedule || null,
+            assigned_technician_id: requestedTechnicianId || null,
+            assigned_date: assignedDate,
+            pending_reason: null,
+            assignment_history: assignmentHistory,
+            deliveryAddress: addressSource || {},
+            district: normalizedAddress.district || '',
+            state: normalizedAddress.state || '',
+            city: normalizedAddress.city || '',
+            customOrderId: orderDoc?.customOrderId || null,
+            order_user_id: orderDoc?.user_id || customerUser.user_id,
+            order_reference_id: orderDoc?._id ? orderDoc._id.toString() : null,
+            model_id: modelId,
+            model_object_id: productModel?._id ? productModel._id.toString() : null,
+            model_name: modelName,
+            model_type: modelType,
+            current_plan: currentPlan,
+            current_plan_end_date: currentPlanEndDate,
+            current_duration: currentDuration,
+            mac_id: macId,
+            device_detail_id: detailId,
+            assigned_by: assignedBy,
+            modified_by: modifiedBy,
+            modified_date: modifiedDate,
+            otp,
+            ...(productSnapshot ? { product: productSnapshot } : {})
+        };
+
+        Object.keys(newTask).forEach(key => {
+            if (newTask[key] === undefined) {
+                delete newTask[key];
+            }
+        });
+
+        const insertResult = await serviceRecordsCollection.insertOne(newTask);
+        newTask._id = insertResult.insertedId;
+
+        if (requestedTechnicianId) {
+            await technicianDetailsCollection.updateOne(
+                { technician_id: requestedTechnicianId },
+                {
+                    $set: {
+                        user_id: technician.user_id,
+                        role_id: technician.role_id,
+                        email: technician.email,
+                        technician_id: requestedTechnicianId,
+                        status: true
+                    },
+                    $inc: { total_assigned_services: 1 }
+                },
+                { upsert: true }
+            );
+
+            let customerEmail = newTask.task_created_by_user_email || null;
+            if (!customerEmail && newTask.task_created_by_user_id) {
+                const customer = await usersCollection.findOne({ user_id: newTask.task_created_by_user_id });
+                if (customer?.email) {
+                    customerEmail = customer.email;
+                }
+            }
+
+            if (customerEmail && otp) {
+                await sendAssignServiceEmail(customerEmail, otp);
+            }
+        }
+
+        return res.status(200).json({ status: 'Success', message: 'Manual request created successfully', data: newTask });
+    } catch (error) {
+        console.error('Error in CreateManualRequest:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
     }
-
-    return res.status(200).json({ status: 'Success', message: 'Manual request created successfully', data: newTask });
-  } catch (error) {
-    console.error('Error in CreateManualRequest:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
 const FetchManualRequests = async (req, res) => {
-  try {
-    const { district } = req.body || {};
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
-    const ordersCollection = db.collection("orders");
-    const usersCollection = db.collection("users");
-    const deviceDetailsCollection = db.collection("device_details");
+    try {
+        const { district } = req.body || {};
+        const db = await database.connectToDatabase();
+        const serviceRecordsCollection = db.collection("service_records");
+        const ordersCollection = db.collection("orders");
+        const usersCollection = db.collection("users");
+        const deviceDetailsCollection = db.collection("device_details");
 
-    const { page, limit, skip } = getPaginationParams(req, 10);
+        const { page, limit, skip } = getPaginationParams(req, 10);
 
-    const baseFilter = { task_type: 3 };
-    const total = await serviceRecordsCollection.countDocuments(baseFilter);
+        const baseFilter = { task_type: 3 };
+        const total = await serviceRecordsCollection.countDocuments(baseFilter);
 
-    if (!total) {
-      return res.status(200).json(formatPaginatedResponse([], 0, page, limit));
-    }
+        if (!total) {
+            return res.status(200).json(formatPaginatedResponse([], 0, page, limit));
+        }
 
-    const tasks = await serviceRecordsCollection
-      .find(baseFilter)
-      .sort({ created_date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+        const tasks = await serviceRecordsCollection
+            .find(baseFilter)
+            .sort({ created_date: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
 
-    const deviceIds = tasks
-      .map(task => task.wp_device_id || task.device_id)
-      .filter(Boolean);
+        const deviceIds = tasks
+            .map(task => task.wp_device_id || task.device_id)
+            .filter(Boolean);
 
-    const orders = deviceIds.length
-      ? await ordersCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
-      : [];
+        const orders = deviceIds.length
+            ? await ordersCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
+            : [];
 
-    const deviceDetails = deviceIds.length
-      ? await deviceDetailsCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
-      : [];
+        const deviceDetails = deviceIds.length
+            ? await deviceDetailsCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
+            : [];
 
-    const orderMap = new Map();
-    orders.forEach(order => {
-      if (order?.wp_device_id) {
-        orderMap.set(order.wp_device_id, order);
-      }
-    });
-
-    const deviceDetailMap = new Map();
-    deviceDetails.forEach(detail => {
-      if (detail?.wp_device_id) {
-        deviceDetailMap.set(detail.wp_device_id, detail);
-      }
-    });
-
-    const technicianIds = tasks
-      .map(task => task.assigned_technician_id)
-      .filter(Boolean);
-
-    const technicians = technicianIds.length
-      ? await usersCollection.find({ technician_id: { $in: technicianIds } }).toArray()
-      : [];
-
-    const technicianMap = new Map();
-    technicians.forEach(tech => {
-      if (tech?.technician_id) {
-        technicianMap.set(tech.technician_id, tech);
-      }
-    });
-
-    const requestDistrict = String(district || '').trim().toLowerCase();
-
-    const response = tasks
-      .map(task => {
-        const deviceId = task.wp_device_id || task.device_id || '';
-        const order = orderMap.get(deviceId) || null;
-        const detail = deviceDetailMap.get(deviceId) || null;
-        const addressSource = task.deliveryAddress || task.address || order?.deliveryAddress || {};
-        const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
-        const technician = task.assigned_technician_id ? technicianMap.get(task.assigned_technician_id) || null : null;
-        const planConfig = detail?.plan_config || {};
-        const currentPlan =
-          task.current_plan ||
-          planConfig?.name ||
-          planConfig?.planName ||
-          planConfig?.plan ||
-          planConfig?.totalWaterLimit ||
-          null;
-        const currentPlanEndDate = task.current_plan_end_date || planConfig?.endDate || null;
-        const currentDuration = task.current_duration || resolvePlanDuration(planConfig);
-        const macId = task.mac_id || detail?.mac_id || detail?.enter_mac_id || null;
-        const modelName = task.model_name || detail?.model_name || order?.modelName || null;
-        const modelType = task.model_type || detail?.model_type || order?.modelType || null;
-        const modelId = task.model_id || detail?.model_id || order?.model_id || null;
-        const detailId = task.device_detail_id || (detail?._id ? detail._id.toString() : null);
-
-        const sanitizedTask = { ...task };
-        delete sanitizedTask.address;
-        delete sanitizedTask.task_description;
-        delete sanitizedTask.metadata;
-        delete sanitizedTask.modelName;
-        delete sanitizedTask.modelType;
-        delete sanitizedTask.currentPlan;
-        delete sanitizedTask.currentPlanEndDate;
-        delete sanitizedTask.currentDuration;
-        delete sanitizedTask.macId;
-        delete sanitizedTask.deviceDetailId;
-        delete sanitizedTask.product;
-
-        const productSnapshot = buildProductSnapshot({
-          deviceId,
-          modelName,
-          planSources: [
-            task.product?.selectedPlan,
-            task.selectedPlan,
-            order?.selectedPlan,
-            detail?.selectedPlan,
-            detail?.plan_config?.selectedPlan,
-            detail?.plan_config?.plan,
-            detail?.plan_config?.plans,
-            detail?.plan_config
-          ],
-          durationSources: [
-            task.product?.selectedDuration,
-            task.selectedDuration,
-            order?.selectedDuration,
-            detail?.selectedDuration,
-            detail?.plan_config?.selectedDuration,
-            detail?.plan_config?.duration,
-            detail?.plan_config?.duration_details,
-            detail?.plan_config?.durationDetails,
-            task.current_duration ? { duration_time_limit: task.current_duration } : null
-          ]
+        const orderMap = new Map();
+        orders.forEach(order => {
+            if (order?.wp_device_id) {
+                orderMap.set(order.wp_device_id, order);
+            }
         });
 
-        return {
-          ...sanitizedTask,
-          deliveryAddress: addressSource || {},
-          order_snapshot: order
-            ? {
-                ...order,
-                _id: order._id ? order._id.toString() : null
-              }
-            : null,
-          district: normalizedAddress.district || task.district || '',
-          state: normalizedAddress.state || task.state || '',
-          city: normalizedAddress.city || task.city || '',
-          model_id: modelId,
-          model_name: modelName,
-          model_type: modelType,
-          current_plan: currentPlan,
-          current_plan_end_date: currentPlanEndDate,
-          current_duration: currentDuration,
-          mac_id: macId,
-          device_detail_id: detailId,
-          product: productSnapshot || null,
-          assignedTechnician: technician
-            ? {
-                technician_id: technician.technician_id,
-                name: technician.name,
-                email: technician.email,
-                phone: technician.phone || technician.mobile || null,
-                user_id: technician.user_id || null,
-                role_id: technician.role_id || null,
-                district: technician.district || technician.assigned_district || null
-              }
-            : null
-        };
-      })
-      .filter(task => {
-        if (!requestDistrict) {
-          return true;
-        }
-        return task.district && task.district.toLowerCase() === requestDistrict;
-      });
+        const deviceDetailMap = new Map();
+        deviceDetails.forEach(detail => {
+            if (detail?.wp_device_id) {
+                deviceDetailMap.set(detail.wp_device_id, detail);
+            }
+        });
 
-    return res.status(200).json(formatPaginatedResponse(response, total, page, limit));
-  } catch (error) {
-    console.error('Error in FetchManualRequests:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
+        const technicianIds = tasks
+            .map(task => task.assigned_technician_id)
+            .filter(Boolean);
+
+        const technicians = technicianIds.length
+            ? await usersCollection.find({ technician_id: { $in: technicianIds } }).toArray()
+            : [];
+
+        const technicianMap = new Map();
+        technicians.forEach(tech => {
+            if (tech?.technician_id) {
+                technicianMap.set(tech.technician_id, tech);
+            }
+        });
+
+        const requestDistrict = String(district || '').trim().toLowerCase();
+
+        const response = tasks
+            .map(task => {
+                const deviceId = task.wp_device_id || task.device_id || '';
+                const order = orderMap.get(deviceId) || null;
+                const detail = deviceDetailMap.get(deviceId) || null;
+                const addressSource = task.deliveryAddress || task.address || order?.deliveryAddress || {};
+                const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
+                const technician = task.assigned_technician_id ? technicianMap.get(task.assigned_technician_id) || null : null;
+                const planConfig = detail?.plan_config || {};
+                const currentPlan =
+                    task.current_plan ||
+                    planConfig?.name ||
+                    planConfig?.planName ||
+                    planConfig?.plan ||
+                    planConfig?.totalWaterLimit ||
+                    null;
+                const currentPlanEndDate = task.current_plan_end_date || planConfig?.endDate || null;
+                const currentDuration = task.current_duration || resolvePlanDuration(planConfig);
+                const macId = task.mac_id || detail?.mac_id || detail?.enter_mac_id || null;
+                const modelName = task.model_name || detail?.model_name || order?.modelName || null;
+                const modelType = task.model_type || detail?.model_type || order?.modelType || null;
+                const modelId = task.model_id || detail?.model_id || order?.model_id || null;
+                const detailId = task.device_detail_id || (detail?._id ? detail._id.toString() : null);
+
+                const sanitizedTask = { ...task };
+                delete sanitizedTask.address;
+                delete sanitizedTask.task_description;
+                delete sanitizedTask.metadata;
+                delete sanitizedTask.modelName;
+                delete sanitizedTask.modelType;
+                delete sanitizedTask.currentPlan;
+                delete sanitizedTask.currentPlanEndDate;
+                delete sanitizedTask.currentDuration;
+                delete sanitizedTask.macId;
+                delete sanitizedTask.deviceDetailId;
+                delete sanitizedTask.product;
+
+                const productSnapshot = buildProductSnapshot({
+                    deviceId,
+                    modelName,
+                    planSources: [
+                        task.product?.selectedPlan,
+                        task.selectedPlan,
+                        order?.selectedPlan,
+                        detail?.selectedPlan,
+                        detail?.plan_config?.selectedPlan,
+                        detail?.plan_config?.plan,
+                        detail?.plan_config?.plans,
+                        detail?.plan_config
+                    ],
+                    durationSources: [
+                        task.product?.selectedDuration,
+                        task.selectedDuration,
+                        order?.selectedDuration,
+                        detail?.selectedDuration,
+                        detail?.plan_config?.selectedDuration,
+                        detail?.plan_config?.duration,
+                        detail?.plan_config?.duration_details,
+                        detail?.plan_config?.durationDetails,
+                        task.current_duration ? { duration_time_limit: task.current_duration } : null
+                    ]
+                });
+
+                return {
+                    ...sanitizedTask,
+                    deliveryAddress: addressSource || {},
+                    order_snapshot: order
+                        ? {
+                            ...order,
+                            _id: order._id ? order._id.toString() : null
+                        }
+                        : null,
+                    district: normalizedAddress.district || task.district || '',
+                    state: normalizedAddress.state || task.state || '',
+                    city: normalizedAddress.city || task.city || '',
+                    model_id: modelId,
+                    model_name: modelName,
+                    model_type: modelType,
+                    current_plan: currentPlan,
+                    current_plan_end_date: currentPlanEndDate,
+                    current_duration: currentDuration,
+                    mac_id: macId,
+                    device_detail_id: detailId,
+                    product: productSnapshot || null,
+                    assignedTechnician: technician
+                        ? {
+                            technician_id: technician.technician_id,
+                            name: technician.name,
+                            email: technician.email,
+                            phone: technician.phone || technician.mobile || null,
+                            user_id: technician.user_id || null,
+                            role_id: technician.role_id || null,
+                            district: technician.district || technician.assigned_district || null
+                        }
+                        : null
+                };
+            })
+            .filter(task => {
+                if (!requestDistrict) {
+                    return true;
+                }
+                return task.district && task.district.toLowerCase() === requestDistrict;
+            });
+
+        return res.status(200).json(formatPaginatedResponse(response, total, page, limit));
+    } catch (error) {
+        console.error('Error in FetchManualRequests:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
+    }
 };
 
 const FetchManualRequestsBySellerDistrict = async (req, res) => {
-  try {
-    let sellerDistrict = '';
+    try {
+        let sellerDistrict = '';
 
-    if (req.user?.role_id === 4) {
-      const db = await database.connectToDatabase();
-      const usersCollection = db.collection("users");
+        if (req.user?.role_id === 4) {
+            const db = await database.connectToDatabase();
+            const usersCollection = db.collection("users");
 
-      let requester = null;
-      if (req.user?.userId) {
-        try {
-          requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
-        } catch (err) {
-          requester = null;
+            let requester = null;
+            if (req.user?.userId) {
+                try {
+                    requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
+                } catch (err) {
+                    requester = null;
+                }
+            }
+
+            sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
+            if (!sellerDistrict) {
+                return res.status(400).json(formatPaginatedResponse([], 0, 1, 10));
+            }
         }
-      }
 
-      sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
-      if (!sellerDistrict) {
-        return res.status(400).json(formatPaginatedResponse([], 0, 1, 10));
-      }
-    }
+        const db = await database.connectToDatabase();
+        const serviceRecordsCollection = db.collection("service_records");
+        const ordersCollection = db.collection("orders");
+        const usersCollection = db.collection("users");
+        const deviceDetailsCollection = db.collection("device_details");
 
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
-    const ordersCollection = db.collection("orders");
-    const usersCollection = db.collection("users");
-    const deviceDetailsCollection = db.collection("device_details");
+        const { page, limit, skip } = getPaginationParams(req, 10);
 
-    const { page, limit, skip } = getPaginationParams(req, 10);
+        const baseFilter = { task_type: 3 };
+        let total = await serviceRecordsCollection.countDocuments(baseFilter);
 
-    const baseFilter = { task_type: 3 };
-    let total = await serviceRecordsCollection.countDocuments(baseFilter);
+        if (!total) {
+            return res.status(200).json(formatPaginatedResponse([], 0, page, limit));
+        }
 
-    if (!total) {
-      return res.status(200).json(formatPaginatedResponse([], 0, page, limit));
-    }
+        const tasks = await serviceRecordsCollection
+            .find(baseFilter)
+            .sort({ created_date: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
 
-    const tasks = await serviceRecordsCollection
-      .find(baseFilter)
-      .sort({ created_date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+        const deviceIds = tasks
+            .map(task => task.wp_device_id || task.device_id)
+            .filter(Boolean);
 
-    const deviceIds = tasks
-      .map(task => task.wp_device_id || task.device_id)
-      .filter(Boolean);
+        const orders = deviceIds.length
+            ? await ordersCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
+            : [];
 
-    const orders = deviceIds.length
-      ? await ordersCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
-      : [];
+        const deviceDetails = deviceIds.length
+            ? await deviceDetailsCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
+            : [];
 
-    const deviceDetails = deviceIds.length
-      ? await deviceDetailsCollection.find({ wp_device_id: { $in: deviceIds } }).toArray()
-      : [];
-
-    const orderMap = new Map();
-    orders.forEach(order => {
-      if (order?.wp_device_id) {
-        orderMap.set(order.wp_device_id, order);
-      }
-    });
-
-    const deviceDetailMap = new Map();
-    deviceDetails.forEach(detail => {
-      if (detail?.wp_device_id) {
-        deviceDetailMap.set(detail.wp_device_id, detail);
-      }
-    });
-
-    const technicianIds = tasks
-      .map(task => task.assigned_technician_id)
-      .filter(Boolean);
-
-    const technicians = technicianIds.length
-      ? await usersCollection.find({ technician_id: { $in: technicianIds } }).toArray()
-      : [];
-
-    const technicianMap = new Map();
-    technicians.forEach(tech => {
-      if (tech?.technician_id) {
-        technicianMap.set(tech.technician_id, tech);
-      }
-    });
-
-    const response = tasks
-      .map(task => {
-        const deviceId = task.wp_device_id || task.device_id || '';
-        const order = orderMap.get(deviceId) || null;
-        const detail = deviceDetailMap.get(deviceId) || null;
-        const addressSource = task.deliveryAddress || task.address || order?.deliveryAddress || {};
-        const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
-        const technician = task.assigned_technician_id ? technicianMap.get(task.assigned_technician_id) || null : null;
-        const planConfig = detail?.plan_config || {};
-        const currentPlan =
-          task.current_plan ||
-          planConfig?.name ||
-          planConfig?.planName ||
-          planConfig?.plan ||
-          planConfig?.totalWaterLimit ||
-          null;
-        const currentPlanEndDate = task.current_plan_end_date || planConfig?.endDate || null;
-        const currentDuration = task.current_duration || resolvePlanDuration(planConfig);
-        const macId = task.mac_id || detail?.mac_id || detail?.enter_mac_id || null;
-        const modelName = task.model_name || detail?.model_name || order?.modelName || null;
-        const modelType = task.model_type || detail?.model_type || order?.modelType || null;
-        const modelId = task.model_id || detail?.model_id || order?.model_id || null;
-        const detailId = task.device_detail_id || (detail?._id ? detail._id.toString() : null);
-
-        const sanitizedTask = { ...task };
-        delete sanitizedTask.address;
-        delete sanitizedTask.task_description;
-        delete sanitizedTask.metadata;
-        delete sanitizedTask.modelName;
-        delete sanitizedTask.modelType;
-        delete sanitizedTask.currentPlan;
-        delete sanitizedTask.currentPlanEndDate;
-        delete sanitizedTask.currentDuration;
-        delete sanitizedTask.macId;
-        delete sanitizedTask.deviceDetailId;
-        delete sanitizedTask.product;
-
-        const productSnapshot = buildProductSnapshot({
-          deviceId,
-          modelName,
-          planSources: [
-            task.product?.selectedPlan,
-            task.selectedPlan,
-            order?.selectedPlan,
-            detail?.selectedPlan,
-            detail?.plan_config?.selectedPlan,
-            detail?.plan_config?.plan,
-            detail?.plan_config?.plans,
-            detail?.plan_config
-          ],
-          durationSources: [
-            task.product?.selectedDuration,
-            task.selectedDuration,
-            order?.selectedDuration,
-            detail?.selectedDuration,
-            detail?.plan_config?.selectedDuration,
-            detail?.plan_config?.duration,
-            detail?.plan_config?.duration_details,
-            detail?.plan_config?.durationDetails,
-            task.current_duration ? { duration_time_limit: task.current_duration } : null
-          ]
+        const orderMap = new Map();
+        orders.forEach(order => {
+            if (order?.wp_device_id) {
+                orderMap.set(order.wp_device_id, order);
+            }
         });
 
-        return {
-          ...sanitizedTask,
-          deliveryAddress: addressSource || {},
-          order_snapshot: order
-            ? {
-                ...order,
-                _id: order._id ? order._id.toString() : null
-              }
-            : null,
-          district: normalizedAddress.district || task.district || '',
-          state: normalizedAddress.state || task.state || '',
-          city: normalizedAddress.city || task.city || '',
-          model_id: modelId,
-          model_name: modelName,
-          model_type: modelType,
-          current_plan: currentPlan,
-          current_plan_end_date: currentPlanEndDate,
-          current_duration: currentDuration,
-          mac_id: macId,
-          device_detail_id: detailId,
-          product: productSnapshot || null,
-          assignedTechnician: technician
-            ? {
-                technician_id: technician.technician_id,
-                name: technician.name,
-                email: technician.email,
-                phone: technician.phone || technician.mobile || null,
-                user_id: technician.user_id || null,
-                role_id: technician.role_id || null,
-                district: technician.district || technician.assigned_district || null
-              }
-            : null
-        };
-      })
-      .filter(task => {
-        if (!sellerDistrict) {
-          return true;
-        }
-        return task.district && task.district.toLowerCase() === sellerDistrict;
-      });
+        const deviceDetailMap = new Map();
+        deviceDetails.forEach(detail => {
+            if (detail?.wp_device_id) {
+                deviceDetailMap.set(detail.wp_device_id, detail);
+            }
+        });
 
-    const filteredTotal = response.length;
-    const paginatedResponse = response.slice(0, limit);
+        const technicianIds = tasks
+            .map(task => task.assigned_technician_id)
+            .filter(Boolean);
 
-    return res.status(200).json(formatPaginatedResponse(paginatedResponse, filteredTotal, page, limit));
-  } catch (error) {
-    console.error('Error in FetchManualRequestsBySellerDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
+        const technicians = technicianIds.length
+            ? await usersCollection.find({ technician_id: { $in: technicianIds } }).toArray()
+            : [];
+
+        const technicianMap = new Map();
+        technicians.forEach(tech => {
+            if (tech?.technician_id) {
+                technicianMap.set(tech.technician_id, tech);
+            }
+        });
+
+        const response = tasks
+            .map(task => {
+                const deviceId = task.wp_device_id || task.device_id || '';
+                const order = orderMap.get(deviceId) || null;
+                const detail = deviceDetailMap.get(deviceId) || null;
+                const addressSource = task.deliveryAddress || task.address || order?.deliveryAddress || {};
+                const normalizedAddress = normalizeDeliveryAddress(addressSource || {});
+                const technician = task.assigned_technician_id ? technicianMap.get(task.assigned_technician_id) || null : null;
+                const planConfig = detail?.plan_config || {};
+                const currentPlan =
+                    task.current_plan ||
+                    planConfig?.name ||
+                    planConfig?.planName ||
+                    planConfig?.plan ||
+                    planConfig?.totalWaterLimit ||
+                    null;
+                const currentPlanEndDate = task.current_plan_end_date || planConfig?.endDate || null;
+                const currentDuration = task.current_duration || resolvePlanDuration(planConfig);
+                const macId = task.mac_id || detail?.mac_id || detail?.enter_mac_id || null;
+                const modelName = task.model_name || detail?.model_name || order?.modelName || null;
+                const modelType = task.model_type || detail?.model_type || order?.modelType || null;
+                const modelId = task.model_id || detail?.model_id || order?.model_id || null;
+                const detailId = task.device_detail_id || (detail?._id ? detail._id.toString() : null);
+
+                const sanitizedTask = { ...task };
+                delete sanitizedTask.address;
+                delete sanitizedTask.task_description;
+                delete sanitizedTask.metadata;
+                delete sanitizedTask.modelName;
+                delete sanitizedTask.modelType;
+                delete sanitizedTask.currentPlan;
+                delete sanitizedTask.currentPlanEndDate;
+                delete sanitizedTask.currentDuration;
+                delete sanitizedTask.macId;
+                delete sanitizedTask.deviceDetailId;
+                delete sanitizedTask.product;
+
+                const productSnapshot = buildProductSnapshot({
+                    deviceId,
+                    modelName,
+                    planSources: [
+                        task.product?.selectedPlan,
+                        task.selectedPlan,
+                        order?.selectedPlan,
+                        detail?.selectedPlan,
+                        detail?.plan_config?.selectedPlan,
+                        detail?.plan_config?.plan,
+                        detail?.plan_config?.plans,
+                        detail?.plan_config
+                    ],
+                    durationSources: [
+                        task.product?.selectedDuration,
+                        task.selectedDuration,
+                        order?.selectedDuration,
+                        detail?.selectedDuration,
+                        detail?.plan_config?.selectedDuration,
+                        detail?.plan_config?.duration,
+                        detail?.plan_config?.duration_details,
+                        detail?.plan_config?.durationDetails,
+                        task.current_duration ? { duration_time_limit: task.current_duration } : null
+                    ]
+                });
+
+                return {
+                    ...sanitizedTask,
+                    deliveryAddress: addressSource || {},
+                    order_snapshot: order
+                        ? {
+                            ...order,
+                            _id: order._id ? order._id.toString() : null
+                        }
+                        : null,
+                    district: normalizedAddress.district || task.district || '',
+                    state: normalizedAddress.state || task.state || '',
+                    city: normalizedAddress.city || task.city || '',
+                    model_id: modelId,
+                    model_name: modelName,
+                    model_type: modelType,
+                    current_plan: currentPlan,
+                    current_plan_end_date: currentPlanEndDate,
+                    current_duration: currentDuration,
+                    mac_id: macId,
+                    device_detail_id: detailId,
+                    product: productSnapshot || null,
+                    assignedTechnician: technician
+                        ? {
+                            technician_id: technician.technician_id,
+                            name: technician.name,
+                            email: technician.email,
+                            phone: technician.phone || technician.mobile || null,
+                            user_id: technician.user_id || null,
+                            role_id: technician.role_id || null,
+                            district: technician.district || technician.assigned_district || null
+                        }
+                        : null
+                };
+            })
+            .filter(task => {
+                if (!sellerDistrict) {
+                    return true;
+                }
+                return task.district && task.district.toLowerCase() === sellerDistrict;
+            });
+
+        const filteredTotal = response.length;
+        const paginatedResponse = response.slice(0, limit);
+
+        return res.status(200).json(formatPaginatedResponse(paginatedResponse, filteredTotal, page, limit));
+    } catch (error) {
+        console.error('Error in FetchManualRequestsBySellerDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
+    }
 };
 
 const AssignManualRequest = async (req, res) => {
-  try {
-    const { task_id, technician_id } = req.body || {};
+    try {
+        const { task_id, technician_id } = req.body || {};
 
-    const numericTaskId = Number(task_id);
-    if (!Number.isInteger(numericTaskId) || !technician_id) {
-      return res.status(400).json({ status: 'Failed', message: 'task_id and technician_id are required' });
-    }
-
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
-    const usersCollection = db.collection("users");
-    const technicianDetailsCollection = db.collection("technician_details");
-
-    const task = await serviceRecordsCollection.findOne({ task_id: numericTaskId, task_type: 3 });
-    if (!task) {
-      return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
-    }
-
-    if (task.task_status && task.task_status.toLowerCase() === 'completed') {
-      return res.status(400).json({ status: 'Failed', message: 'Completed requests cannot be assigned' });
-    }
-
-    const technician = await usersCollection.findOne({ technician_id });
-    if (!technician) {
-      return res.status(404).json({ status: 'Failed', message: 'Technician not found' });
-    }
-
-    let requester = null;
-    if (req.user?.userId) {
-      try {
-        requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
-      } catch (err) {
-        requester = null;
-      }
-    }
-
-    if (req.user?.role_id === 4) {
-      const sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
-      const normalizedTaskAddress = normalizeDeliveryAddress(task.deliveryAddress || task.address || {});
-      const requestDistrict = String(normalizedTaskAddress.district || '').trim().toLowerCase();
-      if (sellerDistrict && requestDistrict && sellerDistrict !== requestDistrict) {
-        return res.status(403).json({ status: 'Failed', message: 'Seller can only assign requests within assigned district' });
-      }
-    }
-
-    const technicianDistrict = normalizeDeliveryAddress({ district: technician.district || technician.assigned_district || '' }).district;
-    const taskDistrict = normalizeDeliveryAddress(task.deliveryAddress || task.address || {}).district;
-    if (taskDistrict && technicianDistrict && taskDistrict.toLowerCase() !== technicianDistrict.toLowerCase()) {
-      return res.status(400).json({ status: 'Failed', message: 'Technician district does not match request district' });
-    }
-
-    // Check if technician is on leave
-    const leaveRequestsCollection = db.collection('leave_requests');
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const approvedLeaves = await leaveRequestsCollection.find({
-      technician_id: technician_id,
-      status: 'Approved',
-      from_date: { $lte: todayEnd },
-      to_date: { $gte: todayStart }
-    }).toArray();
-
-    if (approvedLeaves.length > 0) {
-      return res.status(400).json({ status: 'Failed', message: 'Technician is on approved leave and cannot be assigned' });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    const assignedBy = requester?.email || 'system';
-    const now = new Date();
-
-    const updateResult = await serviceRecordsCollection.updateOne(
-      { task_id: numericTaskId },
-      {
-        $set: {
-          task_status: "Pending",
-          assigned_technician_id: technician_id,
-          assigned_date: now,
-          assigned_by: assignedBy,
-          modified_by: assignedBy,
-          modified_date: now,
-          otp
-        },
-        $push: {
-          assignment_history: {
-            technician_id,
-            assigned_by: assignedBy,
-            assigned_date: now
-          }
+        const numericTaskId = Number(task_id);
+        if (!Number.isInteger(numericTaskId) || !technician_id) {
+            return res.status(400).json({ status: 'Failed', message: 'task_id and technician_id are required' });
         }
-      }
-    );
 
-    if (!updateResult.matchedCount) {
-      return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
-    }
+        const db = await database.connectToDatabase();
+        const serviceRecordsCollection = db.collection("service_records");
+        const usersCollection = db.collection("users");
+        const technicianDetailsCollection = db.collection("technician_details");
 
-    await technicianDetailsCollection.updateOne(
-      { technician_id },
-      {
-        $set: {
-          user_id: technician.user_id,
-          role_id: technician.role_id,
-          email: technician.email,
-          technician_id,
-          status: true
-        },
-        $inc: { total_assigned_services: 1 }
-      },
-      { upsert: true }
-    );
+        const task = await serviceRecordsCollection.findOne({ task_id: numericTaskId, task_type: 3 });
+        if (!task) {
+            return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
+        }
 
-    let customerEmail = task.task_created_by_user_email || null;
-    if (!customerEmail && task.task_created_by_user_id) {
-      const customer = await usersCollection.findOne({ user_id: task.task_created_by_user_id });
-      if (customer?.email) {
-        customerEmail = customer.email;
-      }
-    }
+        if (task.task_status && task.task_status.toLowerCase() === 'completed') {
+            return res.status(400).json({ status: 'Failed', message: 'Completed requests cannot be assigned' });
+        }
 
-    // Send notification emails to admin, seller, and technician (NOT to user)
-    const districtSellers = await getDistrictSellers(db, taskDistrict);
-    const sellerEmails = districtSellers.map(s => s.email);
-    const adminEmails = ['admin@gmail.com'];
-    const technicianEmail = [technician.email];
-    const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
+        const technician = await usersCollection.findOne({ technician_id });
+        if (!technician) {
+            return res.status(404).json({ status: 'Failed', message: 'Technician not found' });
+        }
 
-    const notificationHtml = `
+        let requester = null;
+        if (req.user?.userId) {
+            try {
+                requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
+            } catch (err) {
+                requester = null;
+            }
+        }
+
+        if (req.user?.role_id === 4) {
+            const sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
+            const normalizedTaskAddress = normalizeDeliveryAddress(task.deliveryAddress || task.address || {});
+            const requestDistrict = String(normalizedTaskAddress.district || '').trim().toLowerCase();
+            if (sellerDistrict && requestDistrict && sellerDistrict !== requestDistrict) {
+                return res.status(403).json({ status: 'Failed', message: 'Seller can only assign requests within assigned district' });
+            }
+        }
+
+        const technicianDistrict = normalizeDeliveryAddress({ district: technician.district || technician.assigned_district || '' }).district;
+        const taskDistrict = normalizeDeliveryAddress(task.deliveryAddress || task.address || {}).district;
+        if (taskDistrict && technicianDistrict && taskDistrict.toLowerCase() !== technicianDistrict.toLowerCase()) {
+            return res.status(400).json({ status: 'Failed', message: 'Technician district does not match request district' });
+        }
+
+        // Check if technician is on leave
+        const leaveRequestsCollection = db.collection('leave_requests');
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const approvedLeaves = await leaveRequestsCollection.find({
+            technician_id: technician_id,
+            status: 'Approved',
+            from_date: { $lte: todayEnd },
+            to_date: { $gte: todayStart }
+        }).toArray();
+
+        if (approvedLeaves.length > 0) {
+            return res.status(400).json({ status: 'Failed', message: 'Technician is on approved leave and cannot be assigned' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const assignedBy = requester?.email || 'system';
+        const now = new Date();
+
+        const updateResult = await serviceRecordsCollection.updateOne(
+            { task_id: numericTaskId },
+            {
+                $set: {
+                    task_status: "Pending",
+                    assigned_technician_id: technician_id,
+                    assigned_date: now,
+                    assigned_by: assignedBy,
+                    modified_by: assignedBy,
+                    modified_date: now,
+                    otp
+                },
+                $push: {
+                    assignment_history: {
+                        technician_id,
+                        assigned_by: assignedBy,
+                        assigned_date: now
+                    }
+                }
+            }
+        );
+
+        if (!updateResult.matchedCount) {
+            return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
+        }
+
+        await technicianDetailsCollection.updateOne(
+            { technician_id },
+            {
+                $set: {
+                    user_id: technician.user_id,
+                    role_id: technician.role_id,
+                    email: technician.email,
+                    technician_id,
+                    status: true
+                },
+                $inc: { total_assigned_services: 1 }
+            },
+            { upsert: true }
+        );
+
+        let customerEmail = task.task_created_by_user_email || null;
+        if (!customerEmail && task.task_created_by_user_id) {
+            const customer = await usersCollection.findOne({ user_id: task.task_created_by_user_id });
+            if (customer?.email) {
+                customerEmail = customer.email;
+            }
+        }
+
+        // Send notification emails to admin, seller, and technician (NOT to user)
+        const districtSellers = await getDistrictSellers(db, taskDistrict);
+        const sellerEmails = districtSellers.map(s => s.email);
+        const adminEmails = ['admin@gmail.com'];
+        const technicianEmail = [technician.email];
+        const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
+
+        const notificationHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
             <h2 style="color: #333;">New Manual Request Assigned</h2>
             <ul style="font-size: 16px; color: #555;">
@@ -5866,174 +5879,174 @@ const AssignManualRequest = async (req, res) => {
         </div>
     `;
 
-    // Log to assignment history
-    await logToAssignmentHistory(db, {
-        task_id: numericTaskId,
-        task_type: 3, // Manual request
-        assignment_type: 'Manual Request',
-        action: 'assign',
-        assignment_mode: 'manual',
-        technician_id: technician_id,
-        technician_name: technician.name,
-        previous_technician_id: null,
-        device_id: null, // Manual requests don't have device_id
-        customer_email: customerEmail,
-        location: {
-            city: taskDistrict ? null : null, // Manual requests may not have structured address
-            district: taskDistrict,
-            state: null
-        },
-        assigned_by: assignedBy,
-        reason: null
-    });
+        // Log to assignment history
+        await logToAssignmentHistory(db, {
+            task_id: numericTaskId,
+            task_type: 3, // Manual request
+            assignment_type: 'Manual Request',
+            action: 'assign',
+            assignment_mode: 'manual',
+            technician_id: technician_id,
+            technician_name: technician.name,
+            previous_technician_id: null,
+            device_id: null, // Manual requests don't have device_id
+            customer_email: customerEmail,
+            location: {
+                city: taskDistrict ? null : null, // Manual requests may not have structured address
+                district: taskDistrict,
+                state: null
+            },
+            assigned_by: assignedBy,
+            reason: null
+        });
 
-    await sendEmailToMultiple(allNotificationEmails, 'Manual Request Assigned - IonHive', '', notificationHtml);
+        await sendEmailToMultiple(allNotificationEmails, 'Manual Request Assigned - IonHive', '', notificationHtml);
 
-    return res.status(200).json({ status: 'Success', message: 'Manual request assigned successfully' });
-  } catch (error) {
-    console.error('Error in AssignManualRequest:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
+        return res.status(200).json({ status: 'Success', message: 'Manual request assigned successfully' });
+    } catch (error) {
+        console.error('Error in AssignManualRequest:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
+    }
 };
 
 const ReAssignManualRequest = async (req, res) => {
-  try {
-    const { task_id, technician_id } = req.body || {};
+    try {
+        const { task_id, technician_id } = req.body || {};
 
-    const numericTaskId = Number(task_id);
-    if (!Number.isInteger(numericTaskId) || !technician_id) {
-      return res.status(400).json({ status: 'Failed', message: 'task_id and technician_id are required' });
-    }
-
-    const db = await database.connectToDatabase();
-    const serviceRecordsCollection = db.collection("service_records");
-    const usersCollection = db.collection("users");
-    const technicianDetailsCollection = db.collection("technician_details");
-
-    const task = await serviceRecordsCollection.findOne({ task_id: numericTaskId, task_type: 3 });
-    if (!task) {
-      return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
-    }
-
-    if (task.task_status && task.task_status.toLowerCase() === 'completed') {
-      return res.status(400).json({ status: 'Failed', message: 'Completed requests cannot be reassigned' });
-    }
-
-    if (task.assigned_technician_id && task.assigned_technician_id === technician_id) {
-      return res.status(400).json({ status: 'Failed', message: 'Request is already assigned to the selected technician' });
-    }
-
-    const technician = await usersCollection.findOne({ technician_id });
-    if (!technician) {
-      return res.status(404).json({ status: 'Failed', message: 'Technician not found' });
-    }
-
-    let requester = null;
-    if (req.user?.userId) {
-      try {
-        requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
-      } catch (err) {
-        requester = null;
-      }
-    }
-
-    if (req.user?.role_id === 4) {
-      const sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
-      const normalizedTaskAddress = normalizeDeliveryAddress(task.deliveryAddress || task.address || {});
-      const requestDistrict = String(normalizedTaskAddress.district || '').trim().toLowerCase();
-      if (sellerDistrict && requestDistrict && sellerDistrict !== requestDistrict) {
-        return res.status(403).json({ status: 'Failed', message: 'Seller can only reassign requests within assigned district' });
-      }
-    }
-
-    const technicianDistrict = normalizeDeliveryAddress({ district: technician.district || technician.assigned_district || '' }).district;
-    const taskDistrict = normalizeDeliveryAddress(task.deliveryAddress || task.address || {}).district;
-    if (taskDistrict && technicianDistrict && taskDistrict.toLowerCase() !== technicianDistrict.toLowerCase()) {
-      return res.status(400).json({ status: 'Failed', message: 'Technician district does not match request district' });
-    }
-
-    // Check if technician is on leave
-    const leaveRequestsCollection = db.collection('leave_requests');
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const approvedLeaves = await leaveRequestsCollection.find({
-      technician_id: technician_id,
-      status: 'Approved',
-      from_date: { $lte: todayEnd },
-      to_date: { $gte: todayStart }
-    }).toArray();
-
-    if (approvedLeaves.length > 0) {
-      return res.status(400).json({ status: 'Failed', message: 'Technician is on approved leave and cannot be reassigned' });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    const assignedBy = requester?.email || 'system';
-    const now = new Date();
-
-    const updateResult = await serviceRecordsCollection.updateOne(
-      { task_id: numericTaskId },
-      {
-        $set: {
-          task_status: "Pending",
-          assigned_technician_id: technician_id,
-          assigned_date: now,
-          assigned_by: assignedBy,
-          modified_by: assignedBy,
-          modified_date: now,
-          otp,
-          pending_reason: null
-        },
-        $push: {
-          assignment_history: {
-            technician_id,
-            assigned_by: assignedBy,
-            assigned_date: now,
-            reassigned_from: task.assigned_technician_id || null
-          }
+        const numericTaskId = Number(task_id);
+        if (!Number.isInteger(numericTaskId) || !technician_id) {
+            return res.status(400).json({ status: 'Failed', message: 'task_id and technician_id are required' });
         }
-      }
-    );
 
-    if (!updateResult.matchedCount) {
-      return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
-    }
+        const db = await database.connectToDatabase();
+        const serviceRecordsCollection = db.collection("service_records");
+        const usersCollection = db.collection("users");
+        const technicianDetailsCollection = db.collection("technician_details");
 
-    await technicianDetailsCollection.updateOne(
-      { technician_id },
-      {
-        $set: {
-          user_id: technician.user_id,
-          role_id: technician.role_id,
-          email: technician.email,
-          technician_id,
-          status: true
-        },
-        $inc: { total_assigned_services: 1 }
-      },
-      { upsert: true }
-    );
+        const task = await serviceRecordsCollection.findOne({ task_id: numericTaskId, task_type: 3 });
+        if (!task) {
+            return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
+        }
 
-    let customerEmail = task.task_created_by_user_email || null;
-    if (!customerEmail && task.task_created_by_user_id) {
-      const customer = await usersCollection.findOne({ user_id: task.task_created_by_user_id });
-      if (customer?.email) {
-        customerEmail = customer.email;
-      }
-    }
+        if (task.task_status && task.task_status.toLowerCase() === 'completed') {
+            return res.status(400).json({ status: 'Failed', message: 'Completed requests cannot be reassigned' });
+        }
 
-    // Send notification emails to admin, seller, and technician (NOT to user)
-    const districtSellers = await getDistrictSellers(db, taskDistrict);
-    const sellerEmails = districtSellers.map(s => s.email);
-    const adminEmails = ['admin@gmail.com'];
-    const technicianEmail = [technician.email];
-    const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
+        if (task.assigned_technician_id && task.assigned_technician_id === technician_id) {
+            return res.status(400).json({ status: 'Failed', message: 'Request is already assigned to the selected technician' });
+        }
 
-    const notificationHtml = `
+        const technician = await usersCollection.findOne({ technician_id });
+        if (!technician) {
+            return res.status(404).json({ status: 'Failed', message: 'Technician not found' });
+        }
+
+        let requester = null;
+        if (req.user?.userId) {
+            try {
+                requester = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
+            } catch (err) {
+                requester = null;
+            }
+        }
+
+        if (req.user?.role_id === 4) {
+            const sellerDistrict = String(requester?.assigned_district || requester?.district || '').trim().toLowerCase();
+            const normalizedTaskAddress = normalizeDeliveryAddress(task.deliveryAddress || task.address || {});
+            const requestDistrict = String(normalizedTaskAddress.district || '').trim().toLowerCase();
+            if (sellerDistrict && requestDistrict && sellerDistrict !== requestDistrict) {
+                return res.status(403).json({ status: 'Failed', message: 'Seller can only reassign requests within assigned district' });
+            }
+        }
+
+        const technicianDistrict = normalizeDeliveryAddress({ district: technician.district || technician.assigned_district || '' }).district;
+        const taskDistrict = normalizeDeliveryAddress(task.deliveryAddress || task.address || {}).district;
+        if (taskDistrict && technicianDistrict && taskDistrict.toLowerCase() !== technicianDistrict.toLowerCase()) {
+            return res.status(400).json({ status: 'Failed', message: 'Technician district does not match request district' });
+        }
+
+        // Check if technician is on leave
+        const leaveRequestsCollection = db.collection('leave_requests');
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const approvedLeaves = await leaveRequestsCollection.find({
+            technician_id: technician_id,
+            status: 'Approved',
+            from_date: { $lte: todayEnd },
+            to_date: { $gte: todayStart }
+        }).toArray();
+
+        if (approvedLeaves.length > 0) {
+            return res.status(400).json({ status: 'Failed', message: 'Technician is on approved leave and cannot be reassigned' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const assignedBy = requester?.email || 'system';
+        const now = new Date();
+
+        const updateResult = await serviceRecordsCollection.updateOne(
+            { task_id: numericTaskId },
+            {
+                $set: {
+                    task_status: "Pending",
+                    assigned_technician_id: technician_id,
+                    assigned_date: now,
+                    assigned_by: assignedBy,
+                    modified_by: assignedBy,
+                    modified_date: now,
+                    otp,
+                    pending_reason: null
+                },
+                $push: {
+                    assignment_history: {
+                        technician_id,
+                        assigned_by: assignedBy,
+                        assigned_date: now,
+                        reassigned_from: task.assigned_technician_id || null
+                    }
+                }
+            }
+        );
+
+        if (!updateResult.matchedCount) {
+            return res.status(404).json({ status: 'Failed', message: 'Manual request not found' });
+        }
+
+        await technicianDetailsCollection.updateOne(
+            { technician_id },
+            {
+                $set: {
+                    user_id: technician.user_id,
+                    role_id: technician.role_id,
+                    email: technician.email,
+                    technician_id,
+                    status: true
+                },
+                $inc: { total_assigned_services: 1 }
+            },
+            { upsert: true }
+        );
+
+        let customerEmail = task.task_created_by_user_email || null;
+        if (!customerEmail && task.task_created_by_user_id) {
+            const customer = await usersCollection.findOne({ user_id: task.task_created_by_user_id });
+            if (customer?.email) {
+                customerEmail = customer.email;
+            }
+        }
+
+        // Send notification emails to admin, seller, and technician (NOT to user)
+        const districtSellers = await getDistrictSellers(db, taskDistrict);
+        const sellerEmails = districtSellers.map(s => s.email);
+        const adminEmails = ['admin@gmail.com'];
+        const technicianEmail = [technician.email];
+        const allNotificationEmails = [...sellerEmails, ...adminEmails, ...technicianEmail];
+
+        const notificationHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
             <h2 style="color: #333;">Manual Request Re-assigned</h2>
             <ul style="font-size: 16px; color: #555;">
@@ -6048,14 +6061,14 @@ const ReAssignManualRequest = async (req, res) => {
         </div>
     `;
 
-    await sendEmailToMultiple(allNotificationEmails, 'Manual Request Re-assigned - IonHive', '', notificationHtml);
+        await sendEmailToMultiple(allNotificationEmails, 'Manual Request Re-assigned - IonHive', '', notificationHtml);
 
-    return res.status(200).json({ status: 'Success', message: 'Manual request reassigned successfully' });
-  } catch (error) {
-    console.error('Error in ReAssignManualRequest:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
+        return res.status(200).json({ status: 'Success', message: 'Manual request reassigned successfully' });
+    } catch (error) {
+        console.error('Error in ReAssignManualRequest:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
+    }
 };
 
 
@@ -6269,8 +6282,8 @@ const FetchEndUserDevices = async (req, res) => {
         const assignedDevices = Array.isArray(user.assigned_device_ids)
             ? user.assigned_device_ids
             : user.assigned_device_id
-            ? [user.assigned_device_id]
-            : [];
+                ? [user.assigned_device_id]
+                : [];
 
         if (!assignedDevices.length) {
             return res.status(200).json({
@@ -6546,8 +6559,8 @@ const FetchOrdersByUserId = async (req, res) => {
 
         // Enrich orders with service records and installation status
         const enrichedOrders = await Promise.all(orders.map(async (order) => {
-            const serviceRecord = await serviceRecordsCollection.findOne({ 
-                wp_device_id: order.wp_device_id 
+            const serviceRecord = await serviceRecordsCollection.findOne({
+                wp_device_id: order.wp_device_id
             });
 
             return {
@@ -6592,9 +6605,9 @@ const FetchOrdersByUserId = async (req, res) => {
     } catch (error) {
         console.error("Error in FetchOrdersByUserId:", error);
         logger?.error?.(error);
-        return res.status(500).json({ 
-            status: 'Failed', 
-            message: 'Internal Server Error' 
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
         });
     }
 };
@@ -6693,7 +6706,7 @@ const GetAnalytics = async (req, res) => {
                 },
                 { $match: { _id: { $ne: null, $exists: true } } },
                 { $sort: { devicesSold: -1 } },
-                { $limit: 5 }, 
+                { $limit: 5 },
                 {
                     $project: {
                         [labelField]: "$_id",
@@ -6705,31 +6718,49 @@ const GetAnalytics = async (req, res) => {
         };
 
         // ---------------- Summary Counts ----------------
-        const [
-            paymentsTotal,
-            paymentsSuccess,
-            paymentsPending,
-            ordersTotal,
-            ordersSuccess,
-            ordersPending,
-            usersTotal,
-            adminsCount,
-            techniciansCount,
-            endUsersCount,
-            sellersCount
-        ] = await Promise.all([
-            countDocuments(paymentsCollection, {}),
-            countDocuments(paymentsCollection, { paymentStatus: "Completed" }),
-            countDocuments(paymentsCollection, { paymentStatus: "Pending" }),
-            countDocuments(ordersCollection, {}),
-            countDocuments(ordersCollection, { paymentStatus: "Completed" }),
-            countDocuments(ordersCollection, { paymentStatus: "Pending" }),
-            countDocuments(usersCollection, { role_id: { $in: [2, 3, 4] } }),
-            countDocuments(usersCollection, { role_id: 1 }),
-            countDocuments(usersCollection, { role_id: 2 }),
-            countDocuments(usersCollection, { role_id: 3 }),
-            countDocuments(usersCollection, { role_id: 4 })
+        const [paymentStats, orderStats, userStats] = await Promise.all([
+            paymentsCollection.aggregate([
+                {
+                    $facet: {
+                        total: [{ $count: "count" }],
+                        completed: [{ $match: { paymentStatus: "Completed" } }, { $count: "count" }],
+                        pending: [{ $match: { paymentStatus: "Pending" } }, { $count: "count" }]
+                    }
+                }
+            ]).toArray(),
+            ordersCollection.aggregate([
+                {
+                    $facet: {
+                        total: [{ $count: "count" }],
+                        completed: [{ $match: { paymentStatus: "Completed" } }, { $count: "count" }],
+                        pending: [{ $match: { paymentStatus: "Pending" } }, { $count: "count" }]
+                    }
+                }
+            ]).toArray(),
+            usersCollection.aggregate([
+                {
+                    $facet: {
+                        total: [{ $match: { role_id: { $in: [2, 3, 4] } } }, { $count: "count" }],
+                        admin: [{ $match: { role_id: 1 } }, { $count: "count" }],
+                        technician: [{ $match: { role_id: 2 } }, { $count: "count" }],
+                        endUser: [{ $match: { role_id: 3 } }, { $count: "count" }],
+                        seller: [{ $match: { role_id: 4 } }, { $count: "count" }]
+                    }
+                }
+            ]).toArray()
         ]);
+
+        const paymentsTotal = paymentStats[0]?.total[0]?.count || 0;
+        const paymentsSuccess = paymentStats[0]?.completed[0]?.count || 0;
+        const paymentsPending = paymentStats[0]?.pending[0]?.count || 0;
+        const ordersTotal = orderStats[0]?.total[0]?.count || 0;
+        const ordersSuccess = orderStats[0]?.completed[0]?.count || 0;
+        const ordersPending = orderStats[0]?.pending[0]?.count || 0;
+        const usersTotal = userStats[0]?.total[0]?.count || 0;
+        const adminsCount = userStats[0]?.admin[0]?.count || 0;
+        const techniciansCount = userStats[0]?.technician[0]?.count || 0;
+        const endUsersCount = userStats[0]?.endUser[0]?.count || 0;
+        const sellersCount = userStats[0]?.seller[0]?.count || 0;
 
         // ---------------- Timelines ----------------
         const paymentsTimeline = {
@@ -6862,502 +6893,533 @@ const GetAnalytics = async (req, res) => {
 
 // Get Analytics by District
 const GetAnalyticsByDistrict = async (req, res) => {
-  try {
-    const { district } = req.query || {};
-    if (!district || String(district).trim() === '') {
-      return res.status(400).json({ status: 'Failed', message: 'district is required' });
+    try {
+        const { district } = req.query || {};
+        if (!district || String(district).trim() === '') {
+            return res.status(400).json({ status: 'Failed', message: 'district is required' });
+        }
+
+        const db = await database.connectToDatabase();
+        const paymentsCollection = db.collection('payments');
+        const ordersCollection = db.collection('orders');
+        const usersCollection = db.collection('users');
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const currentDayOfWeek = now.getDay();
+        const daysFromMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMonday);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+        const districtRegex = new RegExp(`^${String(district).trim()}$`, 'i');
+
+        // ---------------- Helpers ----------------
+        const countPaymentsByDistrict = async (filter = {}) => {
+            const result = await paymentsCollection.aggregate([
+                { $lookup: { from: 'orders', localField: 'orderId', foreignField: '_id', as: 'order' } },
+                { $addFields: { order: { $arrayElemAt: ['$order', 0] } } },
+                { $match: { 'order.deliveryAddress.district': districtRegex, ...filter } },
+                { $count: 'count' }
+            ]).toArray();
+            return result[0]?.count || 0;
+        };
+
+        const groupPaymentsTimelineByDistrict = async (dateFilter, groupId, labelField) => {
+            return paymentsCollection.aggregate([
+                { $lookup: { from: 'orders', localField: 'orderId', foreignField: '_id', as: 'order' } },
+                { $addFields: { order: { $arrayElemAt: ['$order', 0] } } },
+                { $match: { 'order.deliveryAddress.district': districtRegex, createdAt: dateFilter } },
+                {
+                    $group: {
+                        _id: groupId,
+                        total: { $sum: 1 },
+                        successful: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] } }
+                    }
+                },
+                { $project: { [labelField]: '$_id', total: 1, successful: 1, _id: 0 } },
+                { $sort: { [labelField]: 1 } }
+            ]).toArray();
+        };
+
+        const groupTimeline = async (collection, filter, groupId, labelField) => {
+            return collection.aggregate([
+                { $match: filter },
+                {
+                    $group: {
+                        _id: groupId,
+                        total: { $sum: 1 },
+                        successful: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] } }
+                    }
+                },
+                { $project: { [labelField]: '$_id', total: 1, successful: 1, _id: 0 } },
+                { $sort: { [labelField]: 1 } }
+            ]).toArray();
+        };
+
+        const buildFixedBuckets = (range, results, labelKey = 'label') => {
+            const buckets = [];
+            for (let i = range.start; i <= range.end; i++) {
+                const match = results.find(r => r[labelKey] === i);
+                buckets.push({
+                    [labelKey]: i,
+                    total: match ? match.total : 0,
+                    successful: match ? match.successful : 0
+                });
+            }
+            return buckets;
+        };
+
+        const groupRevenueTimeline = async (collection, filter, groupId, labelField) => {
+            return collection.aggregate([
+                { $match: { ...filter, paymentStatus: 'Completed' } },
+                {
+                    $addFields: {
+                        amount: {
+                            $toDouble: {
+                                $ifNull: ['$totalPrice', '$grandTotal']
+                            }
+                        }
+                    }
+                },
+                { $group: { _id: groupId, revenue: { $sum: '$amount' } } },
+                { $project: { [labelField]: '$_id', revenue: 1, _id: 0 } },
+                { $sort: { [labelField]: 1 } }
+            ]).toArray();
+        };
+
+        const buildRevenueBuckets = (range, results, labelKey = 'label') => {
+            const buckets = [];
+            for (let i = range.start; i <= range.end; i++) {
+                const match = results.find(r => r[labelKey] === i);
+                buckets.push({ [labelKey]: i, revenue: match ? match.revenue : 0 });
+            }
+            return buckets;
+        };
+
+        // ⭐⭐⭐ TOP MODELS & TOP DISTRICTS (TOP 5 ONLY) ⭐⭐⭐
+        const getTopItems = async (collection, filter, groupByField, labelField = 'name') => {
+            return collection.aggregate([
+                { $match: { ...filter, paymentStatus: 'Completed', 'deliveryAddress.district': districtRegex } },
+                {
+                    $group: {
+                        _id: `$${groupByField}`,
+                        devicesSold: { $sum: { $ifNull: ['$quantity', 1] } }
+                    }
+                },
+                { $match: { _id: { $ne: null, $exists: true } } },
+                { $sort: { devicesSold: -1 } },
+                { $limit: 5 },   // ⭐ TOP 5 MODELS
+                {
+                    $project: {
+                        [labelField]: '$_id',
+                        devicesSold: 1,
+                        _id: 0
+                    }
+                }
+            ]).toArray();
+        };
+
+        const getTopDistricts = async (filter) => {
+            return ordersCollection.aggregate([
+                { $match: { ...filter, paymentStatus: 'Completed', 'deliveryAddress.district': districtRegex } },
+                {
+                    $group: {
+                        _id: '$deliveryAddress.district',
+                        devicesSold: { $sum: { $ifNull: ['$quantity', 1] } }
+                    }
+                },
+                { $match: { _id: { $ne: null, $exists: true } } },
+                { $sort: { devicesSold: -1 } },
+                { $limit: 5 },  // ⭐ TOP 5 DISTRICTS
+                {
+                    $project: {
+                        districtName: '$_id',
+                        devicesSold: 1,
+                        _id: 0
+                    }
+                }
+            ]).toArray();
+        };
+
+        // ---------------- Summary counts ----------------
+        const [paymentStats, orderStats, userStats] = await Promise.all([
+            paymentsCollection.aggregate([
+                { $lookup: { from: 'orders', localField: 'orderId', foreignField: '_id', as: 'order' } },
+                { $addFields: { order: { $arrayElemAt: ['$order', 0] } } },
+                { $match: { 'order.deliveryAddress.district': districtRegex } },
+                {
+                    $facet: {
+                        total: [{ $count: "count" }],
+                        completed: [{ $match: { paymentStatus: 'Completed' } }, { $count: "count" }],
+                        pending: [{ $match: { paymentStatus: 'Pending' } }, { $count: "count" }]
+                    }
+                }
+            ]).toArray(),
+            ordersCollection.aggregate([
+                { $match: { 'deliveryAddress.district': districtRegex } },
+                {
+                    $facet: {
+                        total: [{ $count: "count" }],
+                        completed: [{ $match: { paymentStatus: 'Completed' } }, { $count: "count" }],
+                        pending: [{ $match: { paymentStatus: 'Pending' } }, { $count: "count" }]
+                    }
+                }
+            ]).toArray(),
+            usersCollection.aggregate([
+                { $match: { district: districtRegex } },
+                {
+                    $facet: {
+                        total: [{ $count: "count" }],
+                        admin: [{ $match: { role_id: 1 } }, { $count: "count" }],
+                        technician: [{ $match: { role_id: 2 } }, { $count: "count" }],
+                        endUser: [{ $match: { role_id: 3 } }, { $count: "count" }],
+                        seller: [{ $match: { role_id: 4 } }, { $count: "count" }]
+                    }
+                }
+            ]).toArray()
+        ]);
+
+        const paymentsTotal = paymentStats[0]?.total[0]?.count || 0;
+        const paymentsSuccess = paymentStats[0]?.completed[0]?.count || 0;
+        const paymentsPending = paymentStats[0]?.pending[0]?.count || 0;
+        const ordersTotal = orderStats[0]?.total[0]?.count || 0;
+        const ordersSuccess = orderStats[0]?.completed[0]?.count || 0;
+        const ordersPending = orderStats[0]?.pending[0]?.count || 0;
+        const usersTotal = userStats[0]?.total[0]?.count || 0;
+        const adminsCount = userStats[0]?.admin[0]?.count || 0;
+        const techniciansCount = userStats[0]?.technician[0]?.count || 0;
+        const endUsersCount = userStats[0]?.endUser[0]?.count || 0;
+        const sellersCount = userStats[0]?.seller[0]?.count || 0;
+
+        // ---------------- Timelines ----------------
+        const paymentsTodayRaw = await groupPaymentsTimelineByDistrict({ $gte: startOfToday }, { $hour: '$createdAt' }, 'hour');
+        const paymentsWeekRaw = await groupPaymentsTimelineByDistrict({ $gte: startOfWeek }, { $dayOfWeek: '$createdAt' }, 'day');
+        const paymentsMonthRaw = await groupPaymentsTimelineByDistrict({ $gte: startOfMonth }, { $dayOfMonth: '$createdAt' }, 'day');
+        const paymentsYearRaw = await groupPaymentsTimelineByDistrict({ $gte: oneYearAgo }, { $month: '$createdAt' }, 'month');
+
+        const paymentsTimeline = {
+            today: buildFixedBuckets({ start: 0, end: 23 }, paymentsTodayRaw, 'hour'),
+            week: buildFixedBuckets({ start: 1, end: 7 }, paymentsWeekRaw, 'day'),
+            month: buildFixedBuckets({ start: 1, end: 31 }, paymentsMonthRaw, 'day'),
+            year: buildFixedBuckets({ start: 1, end: 12 }, paymentsYearRaw, 'month')
+        };
+
+        const orderFilterBase = { 'deliveryAddress.district': districtRegex };
+
+        const ordersTodayRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfToday } }, { $hour: '$createdAt' }, 'hour');
+        const ordersWeekRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfWeek } }, { $dayOfWeek: '$createdAt' }, 'day');
+        const ordersMonthRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfMonth } }, { $dayOfMonth: '$createdAt' }, 'day');
+        const ordersYearRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: oneYearAgo } }, { $month: '$createdAt' }, 'month');
+
+        const ordersTimeline = {
+            today: buildFixedBuckets({ start: 0, end: 23 }, ordersTodayRaw, 'hour'),
+            week: buildFixedBuckets({ start: 1, end: 7 }, ordersWeekRaw, 'day'),
+            month: buildFixedBuckets({ start: 1, end: 31 }, ordersMonthRaw, 'day'),
+            year: buildFixedBuckets({ start: 1, end: 12 }, ordersYearRaw, 'month')
+        };
+
+        const revenueTodayRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfToday } }, { $hour: '$createdAt' }, 'hour');
+        const revenueWeekRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfWeek } }, { $dayOfWeek: '$createdAt' }, 'day');
+        const revenueMonthRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfMonth } }, { $dayOfMonth: '$createdAt' }, 'day');
+        const revenueYearRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: oneYearAgo } }, { $month: '$createdAt' }, 'month');
+
+        const revenueTimeline = {
+            today: buildRevenueBuckets({ start: 0, end: 23 }, revenueTodayRaw, 'hour'),
+            week: buildRevenueBuckets({ start: 1, end: 7 }, revenueWeekRaw, 'day'),
+            month: buildRevenueBuckets({ start: 1, end: 31 }, revenueMonthRaw, 'day'),
+            year: buildRevenueBuckets({ start: 1, end: 12 }, revenueYearRaw, 'month')
+        };
+
+        const totalRevenueResult = await ordersCollection.aggregate([
+            { $match: { ...orderFilterBase, paymentStatus: 'Completed' } },
+            {
+                $addFields: {
+                    amount: {
+                        $toDouble: {
+                            $ifNull: ['$totalPrice', '$grandTotal']
+                        }
+                    }
+                }
+            },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]).toArray();
+
+        const totalRevenue = totalRevenueResult[0]?.total || 0;
+
+        // ---------------- TOP 5 DISTRICTS & MODELS ----------------
+        const topDistrictsOverall = await getTopDistricts({});
+        const topDistrictsToday = await getTopDistricts({ createdAt: { $gte: startOfToday } });
+        const topDistrictsWeek = await getTopDistricts({ createdAt: { $gte: startOfWeek } });
+        const topDistrictsMonth = await getTopDistricts({ createdAt: { $gte: startOfMonth } });
+        const topDistrictsYear = await getTopDistricts({ createdAt: { $gte: oneYearAgo } });
+
+        const topModelsOverall = await getTopItems(ordersCollection, {}, 'modelName', 'modelName');
+        const topModelsToday = await getTopItems(ordersCollection, { createdAt: { $gte: startOfToday } }, 'modelName', 'modelName');
+        const topModelsWeek = await getTopItems(ordersCollection, { createdAt: { $gte: startOfWeek } }, 'modelName', 'modelName');
+        const topModelsMonth = await getTopItems(ordersCollection, { createdAt: { $gte: startOfMonth } }, 'modelName', 'modelName');
+        const topModelsYear = await getTopItems(ordersCollection, { createdAt: { $gte: oneYearAgo } }, 'modelName', 'modelName');
+
+        // ---------------- Payload ----------------
+        const payload = {
+            payments: { total: paymentsTotal, successful: paymentsSuccess, pending: paymentsPending, timeline: paymentsTimeline },
+            orders: { total: ordersTotal, successful: ordersSuccess, pending: ordersPending, timeline: ordersTimeline },
+            revenue: { total: totalRevenue, timeline: revenueTimeline },
+            users: {
+                total: usersTotal,
+                admin: adminsCount,
+                technician: techniciansCount,
+                end_user: endUsersCount,
+                seller: sellersCount
+            },
+            topDistricts: {
+                overall: topDistrictsOverall,
+                today: topDistrictsToday,
+                week: topDistrictsWeek,
+                month: topDistrictsMonth,
+                year: topDistrictsYear
+            },
+            topModels: {
+                overall: topModelsOverall,
+                today: topModelsToday,
+                week: topModelsWeek,
+                month: topModelsMonth,
+                year: topModelsYear
+            }
+        };
+
+        return res.status(200).json({ status: 'Success', data: payload });
+    } catch (error) {
+        console.error('Error in GetAnalyticsByDistrict:', error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
     }
-
-    const db = await database.connectToDatabase();
-    const paymentsCollection = db.collection('payments');
-    const ordersCollection = db.collection('orders');
-    const usersCollection = db.collection('users');
-
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const currentDayOfWeek = now.getDay();
-    const daysFromMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
-    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMonday);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-
-    const districtRegex = new RegExp(`^${String(district).trim()}$`, 'i');
-
-    // ---------------- Helpers ----------------
-    const countPaymentsByDistrict = async (filter = {}) => {
-      const result = await paymentsCollection.aggregate([
-        { $lookup: { from: 'orders', localField: 'orderId', foreignField: '_id', as: 'order' } },
-        { $addFields: { order: { $arrayElemAt: ['$order', 0] } } },
-        { $match: { 'order.deliveryAddress.district': districtRegex, ...filter } },
-        { $count: 'count' }
-      ]).toArray();
-      return result[0]?.count || 0;
-    };
-
-    const groupPaymentsTimelineByDistrict = async (dateFilter, groupId, labelField) => {
-      return paymentsCollection.aggregate([
-        { $lookup: { from: 'orders', localField: 'orderId', foreignField: '_id', as: 'order' } },
-        { $addFields: { order: { $arrayElemAt: ['$order', 0] } } },
-        { $match: { 'order.deliveryAddress.district': districtRegex, createdAt: dateFilter } },
-        {
-          $group: {
-            _id: groupId,
-            total: { $sum: 1 },
-            successful: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] } }
-          }
-        },
-        { $project: { [labelField]: '$_id', total: 1, successful: 1, _id: 0 } },
-        { $sort: { [labelField]: 1 } }
-      ]).toArray();
-    };
-
-    const groupTimeline = async (collection, filter, groupId, labelField) => {
-      return collection.aggregate([
-        { $match: filter },
-        {
-          $group: {
-            _id: groupId,
-            total: { $sum: 1 },
-            successful: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] } }
-          }
-        },
-        { $project: { [labelField]: '$_id', total: 1, successful: 1, _id: 0 } },
-        { $sort: { [labelField]: 1 } }
-      ]).toArray();
-    };
-
-    const buildFixedBuckets = (range, results, labelKey = 'label') => {
-      const buckets = [];
-      for (let i = range.start; i <= range.end; i++) {
-        const match = results.find(r => r[labelKey] === i);
-        buckets.push({
-          [labelKey]: i,
-          total: match ? match.total : 0,
-          successful: match ? match.successful : 0
-        });
-      }
-      return buckets;
-    };
-
-    const groupRevenueTimeline = async (collection, filter, groupId, labelField) => {
-      return collection.aggregate([
-        { $match: { ...filter, paymentStatus: 'Completed' } },
-        {
-          $addFields: {
-            amount: {
-              $toDouble: {
-                $ifNull: ['$totalPrice', '$grandTotal']
-              }
-            }
-          }
-        },
-        { $group: { _id: groupId, revenue: { $sum: '$amount' } } },
-        { $project: { [labelField]: '$_id', revenue: 1, _id: 0 } },
-        { $sort: { [labelField]: 1 } }
-      ]).toArray();
-    };
-
-    const buildRevenueBuckets = (range, results, labelKey = 'label') => {
-      const buckets = [];
-      for (let i = range.start; i <= range.end; i++) {
-        const match = results.find(r => r[labelKey] === i);
-        buckets.push({ [labelKey]: i, revenue: match ? match.revenue : 0 });
-      }
-      return buckets;
-    };
-
-    // ⭐⭐⭐ TOP MODELS & TOP DISTRICTS (TOP 5 ONLY) ⭐⭐⭐
-    const getTopItems = async (collection, filter, groupByField, labelField = 'name') => {
-      return collection.aggregate([
-        { $match: { ...filter, paymentStatus: 'Completed', 'deliveryAddress.district': districtRegex } },
-        {
-          $group: {
-            _id: `$${groupByField}`,
-            devicesSold: { $sum: { $ifNull: ['$quantity', 1] } }
-          }
-        },
-        { $match: { _id: { $ne: null, $exists: true } } },
-        { $sort: { devicesSold: -1 } },
-        { $limit: 5 },   // ⭐ TOP 5 MODELS
-        {
-          $project: {
-            [labelField]: '$_id',
-            devicesSold: 1,
-            _id: 0
-          }
-        }
-      ]).toArray();
-    };
-
-    const getTopDistricts = async (filter) => {
-      return ordersCollection.aggregate([
-        { $match: { ...filter, paymentStatus: 'Completed', 'deliveryAddress.district': districtRegex } },
-        {
-          $group: {
-            _id: '$deliveryAddress.district',
-            devicesSold: { $sum: { $ifNull: ['$quantity', 1] } }
-          }
-        },
-        { $match: { _id: { $ne: null, $exists: true } } },
-        { $sort: { devicesSold: -1 } },
-        { $limit: 5 },  // ⭐ TOP 5 DISTRICTS
-        {
-          $project: {
-            districtName: '$_id',
-            devicesSold: 1,
-            _id: 0
-          }
-        }
-      ]).toArray();
-    };
-
-    // ---------------- Summary counts ----------------
-    const [
-      paymentsTotal, paymentsSuccess, paymentsPending,
-      ordersTotal, ordersSuccess, ordersPending,
-      usersTotal, adminsCount, techniciansCount, endUsersCount, sellersCount
-    ] = await Promise.all([
-      countPaymentsByDistrict({}),
-      countPaymentsByDistrict({ paymentStatus: 'Completed' }),
-      countPaymentsByDistrict({ paymentStatus: 'Pending' }),
-      ordersCollection.countDocuments({ 'deliveryAddress.district': districtRegex }),
-      ordersCollection.countDocuments({ 'deliveryAddress.district': districtRegex, paymentStatus: 'Completed' }),
-      ordersCollection.countDocuments({ 'deliveryAddress.district': districtRegex, paymentStatus: 'Pending' }),
-      usersCollection.countDocuments({ district: districtRegex }),
-      usersCollection.countDocuments({ district: districtRegex, role_id: 1 }),
-      usersCollection.countDocuments({ district: districtRegex, role_id: 2 }),
-      usersCollection.countDocuments({ district: districtRegex, role_id: 3 }),
-      usersCollection.countDocuments({ district: districtRegex, role_id: 4 })
-    ]);
-
-    // ---------------- Timelines ----------------
-    const paymentsTodayRaw = await groupPaymentsTimelineByDistrict({ $gte: startOfToday }, { $hour: '$createdAt' }, 'hour');
-    const paymentsWeekRaw = await groupPaymentsTimelineByDistrict({ $gte: startOfWeek }, { $dayOfWeek: '$createdAt' }, 'day');
-    const paymentsMonthRaw = await groupPaymentsTimelineByDistrict({ $gte: startOfMonth }, { $dayOfMonth: '$createdAt' }, 'day');
-    const paymentsYearRaw = await groupPaymentsTimelineByDistrict({ $gte: oneYearAgo }, { $month: '$createdAt' }, 'month');
-
-    const paymentsTimeline = {
-      today: buildFixedBuckets({ start: 0, end: 23 }, paymentsTodayRaw, 'hour'),
-      week: buildFixedBuckets({ start: 1, end: 7 }, paymentsWeekRaw, 'day'),
-      month: buildFixedBuckets({ start: 1, end: 31 }, paymentsMonthRaw, 'day'),
-      year: buildFixedBuckets({ start: 1, end: 12 }, paymentsYearRaw, 'month')
-    };
-
-    const orderFilterBase = { 'deliveryAddress.district': districtRegex };
-
-    const ordersTodayRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfToday } }, { $hour: '$createdAt' }, 'hour');
-    const ordersWeekRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfWeek } }, { $dayOfWeek: '$createdAt' }, 'day');
-    const ordersMonthRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfMonth } }, { $dayOfMonth: '$createdAt' }, 'day');
-    const ordersYearRaw = await groupTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: oneYearAgo } }, { $month: '$createdAt' }, 'month');
-
-    const ordersTimeline = {
-      today: buildFixedBuckets({ start: 0, end: 23 }, ordersTodayRaw, 'hour'),
-      week: buildFixedBuckets({ start: 1, end: 7 }, ordersWeekRaw, 'day'),
-      month: buildFixedBuckets({ start: 1, end: 31 }, ordersMonthRaw, 'day'),
-      year: buildFixedBuckets({ start: 1, end: 12 }, ordersYearRaw, 'month')
-    };
-
-    const revenueTodayRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfToday } }, { $hour: '$createdAt' }, 'hour');
-    const revenueWeekRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfWeek } }, { $dayOfWeek: '$createdAt' }, 'day');
-    const revenueMonthRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: startOfMonth } }, { $dayOfMonth: '$createdAt' }, 'day');
-    const revenueYearRaw = await groupRevenueTimeline(ordersCollection, { ...orderFilterBase, createdAt: { $gte: oneYearAgo } }, { $month: '$createdAt' }, 'month');
-
-    const revenueTimeline = {
-      today: buildRevenueBuckets({ start: 0, end: 23 }, revenueTodayRaw, 'hour'),
-      week: buildRevenueBuckets({ start: 1, end: 7 }, revenueWeekRaw, 'day'),
-      month: buildRevenueBuckets({ start: 1, end: 31 }, revenueMonthRaw, 'day'),
-      year: buildRevenueBuckets({ start: 1, end: 12 }, revenueYearRaw, 'month')
-    };
-
-    const totalRevenueResult = await ordersCollection.aggregate([
-      { $match: { ...orderFilterBase, paymentStatus: 'Completed' } },
-      {
-        $addFields: {
-          amount: {
-            $toDouble: {
-              $ifNull: ['$totalPrice', '$grandTotal']
-            }
-          }
-        }
-      },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]).toArray();
-
-    const totalRevenue = totalRevenueResult[0]?.total || 0;
-
-    // ---------------- TOP 5 DISTRICTS & MODELS ----------------
-    const topDistrictsOverall = await getTopDistricts({});
-    const topDistrictsToday = await getTopDistricts({ createdAt: { $gte: startOfToday } });
-    const topDistrictsWeek = await getTopDistricts({ createdAt: { $gte: startOfWeek } });
-    const topDistrictsMonth = await getTopDistricts({ createdAt: { $gte: startOfMonth } });
-    const topDistrictsYear = await getTopDistricts({ createdAt: { $gte: oneYearAgo } });
-
-    const topModelsOverall = await getTopItems(ordersCollection, {}, 'modelName', 'modelName');
-    const topModelsToday = await getTopItems(ordersCollection, { createdAt: { $gte: startOfToday } }, 'modelName', 'modelName');
-    const topModelsWeek = await getTopItems(ordersCollection, { createdAt: { $gte: startOfWeek } }, 'modelName', 'modelName');
-    const topModelsMonth = await getTopItems(ordersCollection, { createdAt: { $gte: startOfMonth } }, 'modelName', 'modelName');
-    const topModelsYear = await getTopItems(ordersCollection, { createdAt: { $gte: oneYearAgo } }, 'modelName', 'modelName');
-
-    // ---------------- Payload ----------------
-    const payload = {
-      payments: { total: paymentsTotal, successful: paymentsSuccess, pending: paymentsPending, timeline: paymentsTimeline },
-      orders: { total: ordersTotal, successful: ordersSuccess, pending: ordersPending, timeline: ordersTimeline },
-      revenue: { total: totalRevenue, timeline: revenueTimeline },
-      users: {
-        total: usersTotal,
-        admin: adminsCount,
-        technician: techniciansCount,
-        end_user: endUsersCount,
-        seller: sellersCount
-      },
-      topDistricts: {
-        overall: topDistrictsOverall,
-        today: topDistrictsToday,
-        week: topDistrictsWeek,
-        month: topDistrictsMonth,
-        year: topDistrictsYear
-      },
-      topModels: {
-        overall: topModelsOverall,
-        today: topModelsToday,
-        week: topModelsWeek,
-        month: topModelsMonth,
-        year: topModelsYear
-      }
-    };
-
-    return res.status(200).json({ status: 'Success', data: payload });
-  } catch (error) {
-    console.error('Error in GetAnalyticsByDistrict:', error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
 const FetchTechnicianTasksByUserId = async (req, res) => {
-  const { user_id, technician_id, email } = req.body;
+    const { user_id, technician_id, email } = req.body;
 
-  if (!email || (!user_id && !technician_id)) {
-    return res.status(400).json({
-      status: 'Failed',
-      message: 'email and either user_id or technician_id are required'
-    });
-  }
-
-  try {
-    const db = await database.connectToDatabase();
-    const technicianCollection = db.collection('technician_details');
-    const serviceRecordsCollection = db.collection('service_records');
-    const ordersCollection = db.collection('orders');
-
-    // Step 1: Find technician
-    const emailNormalized = String(email).trim().toLowerCase();
-    const rawConditions = [];
-
-    if (user_id !== undefined && user_id !== null && String(user_id).trim() !== '') {
-      const userIdTrimmed = String(user_id).trim();
-      const userIdNumber = Number(userIdTrimmed);
-
-      if (!Number.isNaN(userIdNumber)) {
-        rawConditions.push({ user_id: userIdNumber });
-      }
-
-      rawConditions.push({ user_id: userIdTrimmed });
-    }
-
-    if (technician_id !== undefined && technician_id !== null && String(technician_id).trim() !== '') {
-      rawConditions.push({ technician_id: String(technician_id).trim() });
-    }
-
-    const seenKeys = new Set();
-    const conditions = [];
-
-    for (const condition of rawConditions) {
-      const key = JSON.stringify(condition);
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        conditions.push(condition);
-      }
-    }
-
-    const technician = await technicianCollection.findOne(
-      conditions.length > 1
-        ? { email: emailNormalized, $or: conditions }
-        : { email: emailNormalized, ...conditions[0] }
-    );
-
-    if (!technician) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: 'Technician not found for given user_id and email',
-      });
-    }
-
-    if (!technician.technician_id) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Technician record is missing technician_id',
-      });
-    }
-
-    const assignedTechnicianId = technician.technician_id;
-
-    // Step 2: Fetch tasks either directly assigned or in assignment history
-    const tasks = await serviceRecordsCollection
-      .find({
-        $or: [
-          { assigned_technician_id: assignedTechnicianId },
-          { 'assignment_history.technician_id': assignedTechnicianId }
-        ]
-      })
-      .toArray();
-
-    if (!tasks.length) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: 'No tasks found for this technician (current or past assignments)',
-      });
-    }
-
-    const buildTaskIdentifier = (task) => {
-      if (!task || typeof task !== 'object') {
-        return null;
-      }
-      if (task.task_id !== undefined && task.task_id !== null) {
-        return String(task.task_id);
-      }
-      if (task.wp_device_id) {
-        return String(task.wp_device_id);
-      }
-      if (task.device_id) {
-        return String(task.device_id);
-      }
-      return task._id ? String(task._id) : null;
-    };
-
-    const assignmentHistoryMap = {};
-
-    // Step 3: Enrich each task with order and assignment history details
-    for (const task of tasks) {
-      const orderId = task?.order_snapshot?.orderId || task?.order_id;
-      if (orderId) {
-        const order = await ordersCollection.findOne({
-          _id: new ObjectId(orderId.toString())
+    if (!email || (!user_id && !technician_id)) {
+        return res.status(400).json({
+            status: 'Failed',
+            message: 'email and either user_id or technician_id are required'
         });
-
-        if (order) {
-          task.order_details = {
-            customOrderId: order.customOrderId,
-            createdAt: order.createdAt,
-            wp_device_id: order.wp_device_id,
-            grandTotal: order.grandTotal,
-            payment_status: order.payment_status,
-            order_status: order.order_status,
-            customer_name: order.customer_name,
-            customer_email: order.customer_email,
-            customer_phone: order.customer_phone
-          };
-        }
-      }
-
-      const historyEntries = Array.isArray(task.assignment_history) ? task.assignment_history : [];
-      const key = buildTaskIdentifier(task);
-      if (key) {
-        assignmentHistoryMap[key] = {
-          assignment_history: historyEntries,
-          total_assignments: historyEntries.length,
-          task_status: task.status,
-          pending_reason: task.pending_reason,
-          wp_device_id: task.wp_device_id,
-          device_id: task.device_id,
-          last_assigned_date: historyEntries.length ? historyEntries[historyEntries.length - 1]?.assigned_date || null : null,
-        };
-      }
     }
 
-    // Step 4: Return enriched response
-    return res.status(200).json({
-      status: 'Success',
-      technician: {
-        technician_id: technician.technician_id,
-        user_id: technician.user_id,
-        email: technician.email,
-        role_id: technician.role_id,
-        status: technician.status,
-      },
-      data: {
-        tasks,
-        assignmentHistory: assignmentHistoryMap,
-      },
-    });
-  } catch (error) {
-    console.error('Error in FetchTechnicianTasksByUserId:', error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error',
-    });
-  }
+    try {
+        const db = await database.connectToDatabase();
+        const technicianCollection = db.collection('technician_details');
+        const serviceRecordsCollection = db.collection('service_records');
+        const ordersCollection = db.collection('orders');
+
+        // Step 1: Find technician
+        const emailNormalized = String(email).trim().toLowerCase();
+        const rawConditions = [];
+
+        if (user_id !== undefined && user_id !== null && String(user_id).trim() !== '') {
+            const userIdTrimmed = String(user_id).trim();
+            const userIdNumber = Number(userIdTrimmed);
+
+            if (!Number.isNaN(userIdNumber)) {
+                rawConditions.push({ user_id: userIdNumber });
+            }
+
+            rawConditions.push({ user_id: userIdTrimmed });
+        }
+
+        if (technician_id !== undefined && technician_id !== null && String(technician_id).trim() !== '') {
+            rawConditions.push({ technician_id: String(technician_id).trim() });
+        }
+
+        const seenKeys = new Set();
+        const conditions = [];
+
+        for (const condition of rawConditions) {
+            const key = JSON.stringify(condition);
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                conditions.push(condition);
+            }
+        }
+
+        const technician = await technicianCollection.findOne(
+            conditions.length > 1
+                ? { email: emailNormalized, $or: conditions }
+                : { email: emailNormalized, ...conditions[0] }
+        );
+
+        if (!technician) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: 'Technician not found for given user_id and email',
+            });
+        }
+
+        if (!technician.technician_id) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Technician record is missing technician_id',
+            });
+        }
+
+        const assignedTechnicianId = technician.technician_id;
+
+        // Step 2: Fetch tasks either directly assigned or in assignment history
+        const tasks = await serviceRecordsCollection
+            .find({
+                $or: [
+                    { assigned_technician_id: assignedTechnicianId },
+                    { 'assignment_history.technician_id': assignedTechnicianId }
+                ]
+            })
+            .toArray();
+
+        if (!tasks.length) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: 'No tasks found for this technician (current or past assignments)',
+            });
+        }
+
+        const buildTaskIdentifier = (task) => {
+            if (!task || typeof task !== 'object') {
+                return null;
+            }
+            if (task.task_id !== undefined && task.task_id !== null) {
+                return String(task.task_id);
+            }
+            if (task.wp_device_id) {
+                return String(task.wp_device_id);
+            }
+            if (task.device_id) {
+                return String(task.device_id);
+            }
+            return task._id ? String(task._id) : null;
+        };
+
+        const assignmentHistoryMap = {};
+
+        // Step 3: Enrich each task with order and assignment history details
+        for (const task of tasks) {
+            const orderId = task?.order_snapshot?.orderId || task?.order_id;
+            if (orderId) {
+                const order = await ordersCollection.findOne({
+                    _id: new ObjectId(orderId.toString())
+                });
+
+                if (order) {
+                    task.order_details = {
+                        customOrderId: order.customOrderId,
+                        createdAt: order.createdAt,
+                        wp_device_id: order.wp_device_id,
+                        grandTotal: order.grandTotal,
+                        payment_status: order.payment_status,
+                        order_status: order.order_status,
+                        customer_name: order.customer_name,
+                        customer_email: order.customer_email,
+                        customer_phone: order.customer_phone
+                    };
+                }
+            }
+
+            const historyEntries = Array.isArray(task.assignment_history) ? task.assignment_history : [];
+            const key = buildTaskIdentifier(task);
+            if (key) {
+                assignmentHistoryMap[key] = {
+                    assignment_history: historyEntries,
+                    total_assignments: historyEntries.length,
+                    task_status: task.status,
+                    pending_reason: task.pending_reason,
+                    wp_device_id: task.wp_device_id,
+                    device_id: task.device_id,
+                    last_assigned_date: historyEntries.length ? historyEntries[historyEntries.length - 1]?.assigned_date || null : null,
+                };
+            }
+        }
+
+        // Step 4: Return enriched response
+        return res.status(200).json({
+            status: 'Success',
+            technician: {
+                technician_id: technician.technician_id,
+                user_id: technician.user_id,
+                email: technician.email,
+                role_id: technician.role_id,
+                status: technician.status,
+            },
+            data: {
+                tasks,
+                assignmentHistory: assignmentHistoryMap,
+            },
+        });
+    } catch (error) {
+        console.error('Error in FetchTechnicianTasksByUserId:', error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error',
+        });
+    }
 };
 
 const UnAssignTask = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const serviceRecords = db.collection("service_records");
-    const { task_id, modified_by } = req.body;
+    try {
+        const db = await database.connectToDatabase();
+        const serviceRecords = db.collection("service_records");
+        const { task_id, modified_by } = req.body;
 
-    if (!task_id || !modified_by) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'Invalid or missing required fields: task_id and modified_by are required',
-      });
-    }
+        if (!task_id || !modified_by) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'Invalid or missing required fields: task_id and modified_by are required',
+            });
+        }
 
-    const existingTask = await serviceRecords.findOne({ task_id });
-    if (!existingTask) {
-      return res.status(404).json({
-        status: 'Failed',
-        message: `Task with task_id ${task_id} not found.`,
-      });
-    }
+        const existingTask = await serviceRecords.findOne({ task_id });
+        if (!existingTask) {
+            return res.status(404).json({
+                status: 'Failed',
+                message: `Task with task_id ${task_id} not found.`,
+            });
+        }
 
-    const previousTechnicianId = existingTask.assigned_technician_id;
-    const now = new Date();
+        const previousTechnicianId = existingTask.assigned_technician_id;
+        const now = new Date();
 
-    const updateResult = await serviceRecords.updateOne(
-      { task_id },
-      {
-        $set: {
-          assigned_technician_id: null,
-          task_status: 'Unassigned',
-          pending_reason: null,
-          modified_by,
-          modified_date: now,
-          unassigned_date: now,
-        },
-      }
-    );
+        const updateResult = await serviceRecords.updateOne(
+            { task_id },
+            {
+                $set: {
+                    assigned_technician_id: null,
+                    task_status: 'Unassigned',
+                    pending_reason: null,
+                    modified_by,
+                    modified_date: now,
+                    unassigned_date: now,
+                },
+            }
+        );
 
-    if (updateResult.modifiedCount === 1) {
-      // Get technician info for notification
-      const usersCollection = db.collection("users");
-      const technicianUser = previousTechnicianId ? await usersCollection.findOne({ technician_id: previousTechnicianId }) : null;
+        if (updateResult.modifiedCount === 1) {
+            // Get technician info for notification
+            const usersCollection = db.collection("users");
+            const technicianUser = previousTechnicianId ? await usersCollection.findOne({ technician_id: previousTechnicianId }) : null;
 
-      // Get district info
-      const taskType = existingTask.task_type === 1 ? 'Installation' : 'Service';
-      const location = existingTask.address || {
-        city: 'N/A',
-        district: 'N/A',
-        state: 'N/A'
-      };
+            // Get district info
+            const taskType = existingTask.task_type === 1 ? 'Installation' : 'Service';
+            const location = existingTask.address || {
+                city: 'N/A',
+                district: 'N/A',
+                state: 'N/A'
+            };
 
-      // Get district sellers and send notification emails
-      const districtSellers = await getDistrictSellers(db, location.district);
-      const sellerEmails = districtSellers.map(s => s.email);
-      const adminEmails = ['admin@gmail.com'];
-      const allNotificationEmails = [...sellerEmails, ...adminEmails];
+            // Get district sellers and send notification emails
+            const districtSellers = await getDistrictSellers(db, location.district);
+            const sellerEmails = districtSellers.map(s => s.email);
+            const adminEmails = ['admin@gmail.com'];
+            const allNotificationEmails = [...sellerEmails, ...adminEmails];
 
-      const notificationHtml = `
+            const notificationHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
               <h2 style="color: #333;">${taskType} Task Unassigned</h2>
               <ul style="font-size: 16px; color: #555;">
@@ -7371,1040 +7433,1040 @@ const UnAssignTask = async (req, res) => {
           </div>
       `;
 
-      await sendEmailToMultiple(allNotificationEmails, `${taskType} Task Unassigned - IonHive`, '', notificationHtml);
+            await sendEmailToMultiple(allNotificationEmails, `${taskType} Task Unassigned - IonHive`, '', notificationHtml);
 
-      // Log to assignment history
-      await logToAssignmentHistory(db, {
-          task_id: task_id,
-          task_type: existingTask.task_type,
-          assignment_type: taskType,
-          action: 'unassign',
-          assignment_mode: 'manual',
-          technician_id: null,
-          technician_name: null,
-          previous_technician_id: previousTechnicianId,
-          device_id: existingTask.wp_device_id || existingTask.device_id,
-          customer_email: existingTask.task_created_by_user_email,
-          location: location,
-          modified_by: modified_by,
-          reason: null
-      });
+            // Log to assignment history
+            await logToAssignmentHistory(db, {
+                task_id: task_id,
+                task_type: existingTask.task_type,
+                assignment_type: taskType,
+                action: 'unassign',
+                assignment_mode: 'manual',
+                technician_id: null,
+                technician_name: null,
+                previous_technician_id: previousTechnicianId,
+                device_id: existingTask.wp_device_id || existingTask.device_id,
+                customer_email: existingTask.task_created_by_user_email,
+                location: location,
+                modified_by: modified_by,
+                reason: null
+            });
 
-      return res.status(200).json({
-        status: 'Success',
-        message: `${taskType} task ${task_id} unassigned successfully.`,
-      });
+            return res.status(200).json({
+                status: 'Success',
+                message: `${taskType} task ${task_id} unassigned successfully.`,
+            });
+        }
+
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Task update failed. Please try again.',
+        });
+
+    } catch (error) {
+        console.error('Error in UnAssignTask:', error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error',
+        });
     }
-
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Task update failed. Please try again.',
-    });
-
-  } catch (error) {
-    console.error('Error in UnAssignTask:', error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error',
-    });
-  }
 };
 
 const getAssignmentHistory = async (req, res) => {
-  try {
-    const { task_id } = req.params;
+    try {
+        const { task_id } = req.params;
 
-    if (!task_id) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'task_id parameter is required'
-      });
+        if (!task_id) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'task_id parameter is required'
+            });
+        }
+
+        const db = await database.connectToDatabase();
+        const assignmentHistoryCollection = db.collection('assignment_history');
+
+        const history = await assignmentHistoryCollection
+            .find({ task_id: parseInt(task_id) })
+            .sort({ created_at: -1 })
+            .toArray();
+
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Assignment history fetched successfully',
+            data: history
+        });
+
+    } catch (error) {
+        console.error('Error in getAssignmentHistory:', error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error',
+        });
     }
-
-    const db = await database.connectToDatabase();
-    const assignmentHistoryCollection = db.collection('assignment_history');
-
-    const history = await assignmentHistoryCollection
-      .find({ task_id: parseInt(task_id) })
-      .sort({ created_at: -1 })
-      .toArray();
-
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Assignment history fetched successfully',
-      data: history
-    });
-
-  } catch (error) {
-    console.error('Error in getAssignmentHistory:', error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error',
-    });
-  }
 };
 
 const GetUserCountsByRole = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const collection = db.collection('users');
+    try {
+        const db = await database.connectToDatabase();
+        const collection = db.collection('users');
 
-    const allUsersCount = await collection.countDocuments();
-    const adminCount = await collection.countDocuments({ role_id: 1 });
-    const technicianCount = await collection.countDocuments({ role_id: 2 });
-    const endUserCount = await collection.countDocuments({ role_id: 3 });
-    const sellerCount = await collection.countDocuments({ role_id: 4 });
+        const allUsersCount = await collection.countDocuments();
+        const adminCount = await collection.countDocuments({ role_id: 1 });
+        const technicianCount = await collection.countDocuments({ role_id: 2 });
+        const endUserCount = await collection.countDocuments({ role_id: 3 });
+        const sellerCount = await collection.countDocuments({ role_id: 4 });
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'User counts by role fetched successfully',
-      data: {
-        totalUsers: allUsersCount,
-        admin: adminCount,
-        technician: technicianCount,
-        endUser: endUserCount,
-        seller: sellerCount
-      }
-    });
+        return res.status(200).json({
+            status: 'Success',
+            message: 'User counts by role fetched successfully',
+            data: {
+                totalUsers: allUsersCount,
+                admin: adminCount,
+                technician: technicianCount,
+                endUser: endUserCount,
+                seller: sellerCount
+            }
+        });
 
-  } catch (error) {
-    console.error('Error in GetUserCountsByRole:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+    } catch (error) {
+        console.error('Error in GetUserCountsByRole:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetUserCountByType = async (req, res) => {
-  try {
-    const { type } = req.query;
+    try {
+        const { type } = req.query;
 
-    if (!type) {
-      return res.status(400).json({
-        status: 'Failed',
-        message: 'User type is required (admin, technician, endUser, seller, all)'
-      });
+        if (!type) {
+            return res.status(400).json({
+                status: 'Failed',
+                message: 'User type is required (admin, technician, endUser, seller, all)'
+            });
+        }
+
+        const db = await database.connectToDatabase();
+        const collection = db.collection('users');
+
+        let roleId = null;
+        const typeMap = {
+            'admin': 1,
+            'technician': 2,
+            'endUser': 3,
+            'seller': 4,
+            'all': null
+        };
+
+        roleId = typeMap[type.toLowerCase()];
+
+        let count;
+        if (roleId === null) {
+            count = await collection.countDocuments();
+        } else {
+            count = await collection.countDocuments({ role_id: roleId });
+        }
+
+        return res.status(200).json({
+            status: 'Success',
+            message: `${type} count fetched successfully`,
+            data: {
+                type: type,
+                count: count
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in GetUserCountByType:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
     }
-
-    const db = await database.connectToDatabase();
-    const collection = db.collection('users');
-
-    let roleId = null;
-    const typeMap = {
-      'admin': 1,
-      'technician': 2,
-      'endUser': 3,
-      'seller': 4,
-      'all': null
-    };
-
-    roleId = typeMap[type.toLowerCase()];
-
-    let count;
-    if (roleId === null) {
-      count = await collection.countDocuments();
-    } else {
-      count = await collection.countDocuments({ role_id: roleId });
-    }
-
-    return res.status(200).json({
-      status: 'Success',
-      message: `${type} count fetched successfully`,
-      data: {
-        type: type,
-        count: count
-      }
-    });
-
-  } catch (error) {
-    console.error('Error in GetUserCountByType:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
 };
 
 const GetUserCountByDistrict = async (req, res) => {
-  try {
-    const { district } = req.query;
-    const db = await database.connectToDatabase();
-    const collection = db.collection('users');
+    try {
+        const { district } = req.query;
+        const db = await database.connectToDatabase();
+        const collection = db.collection('users');
 
-    let query = {};
-    if (district) {
-      query = { district: { $regex: new RegExp(district, 'i') } };
-    }
-
-    const counts = await collection.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$district',
-          total: { $sum: 1 },
-          admin: {
-            $sum: { $cond: [{ $eq: ['$role_id', 1] }, 1, 0] }
-          },
-          technician: {
-            $sum: { $cond: [{ $eq: ['$role_id', 2] }, 1, 0] }
-          },
-          endUser: {
-            $sum: { $cond: [{ $eq: ['$role_id', 3] }, 1, 0] }
-          },
-          seller: {
-            $sum: { $cond: [{ $eq: ['$role_id', 4] }, 1, 0] }
-          }
+        let query = {};
+        if (district) {
+            query = { district: { $regex: new RegExp(district, 'i') } };
         }
-      },
-      { $sort: { total: -1 } }
-    ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'User counts by district fetched successfully',
-      data: counts
-    });
+        const counts = await collection.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: '$district',
+                    total: { $sum: 1 },
+                    admin: {
+                        $sum: { $cond: [{ $eq: ['$role_id', 1] }, 1, 0] }
+                    },
+                    technician: {
+                        $sum: { $cond: [{ $eq: ['$role_id', 2] }, 1, 0] }
+                    },
+                    endUser: {
+                        $sum: { $cond: [{ $eq: ['$role_id', 3] }, 1, 0] }
+                    },
+                    seller: {
+                        $sum: { $cond: [{ $eq: ['$role_id', 4] }, 1, 0] }
+                    }
+                }
+            },
+            { $sort: { total: -1 } }
+        ]).toArray();
 
-  } catch (error) {
-    console.error('Error in GetUserCountByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+        return res.status(200).json({
+            status: 'Success',
+            message: 'User counts by district fetched successfully',
+            data: counts
+        });
+
+    } catch (error) {
+        console.error('Error in GetUserCountByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetOrdersCounts = async (req, res) => {
-  try {
-    const { district: districtParam } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
-    const db = await database.connectToDatabase();
-    const collection = db.collection('orders');
+    try {
+        const { district: districtParam } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
+        const db = await database.connectToDatabase();
+        const collection = db.collection('orders');
 
-    let matchStage = {};
-    const isSeller = Number(userRole) === 4;
-    const filterDistrict = isSeller ? userDistrict : districtParam;
+        let matchStage = {};
+        const isSeller = Number(userRole) === 4;
+        const filterDistrict = isSeller ? userDistrict : districtParam;
 
-    if (filterDistrict) {
-      matchStage = { 'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') } };
-    }
-
-    const counts = await collection.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $and: [{ $ne: ['$deliveryCompletionStatus', true] }, { $ne: ['$orderStatus', 'Delivered'] }, { $ne: ['$orderStatus', 'Confirmed'] }] }, 1, 0] }
-          },
-          confirmed: {
-            $sum: { $cond: [{ $eq: ['$orderStatus', 'Confirmed'] }, 1, 0] }
-          },
-          completed: {
-            $sum: { $cond: [{ $or: [{ $eq: ['$deliveryCompletionStatus', true] }, { $eq: ['$orderStatus', 'Delivered'] }] }, 1, 0] }
-          },
-          paymentCompleted: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] }
-          },
-          pendingPayment: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'Pending'] }, 1, 0] }
-          },
-          cod: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'COD'] }, 1, 0] }
-          },
-          online: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'Online'] }, 1, 0] }
-          }
+        if (filterDistrict) {
+            matchStage = { 'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') } };
         }
-      }
-    ]).toArray();
 
-    const data = counts.length > 0 ? counts[0] : {
-      totalOrders: 0,
-      pending: 0,
-      confirmed: 0,
-      completed: 0,
-      paymentCompleted: 0,
-      pendingPayment: 0,
-      cod: 0,
-      online: 0
-    };
+        const counts = await collection.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalOrders: { $sum: 1 },
+                    pending: {
+                        $sum: { $cond: [{ $and: [{ $ne: ['$deliveryCompletionStatus', true] }, { $ne: ['$orderStatus', 'Delivered'] }, { $ne: ['$orderStatus', 'Confirmed'] }] }, 1, 0] }
+                    },
+                    confirmed: {
+                        $sum: { $cond: [{ $eq: ['$orderStatus', 'Confirmed'] }, 1, 0] }
+                    },
+                    completed: {
+                        $sum: { $cond: [{ $or: [{ $eq: ['$deliveryCompletionStatus', true] }, { $eq: ['$orderStatus', 'Delivered'] }] }, 1, 0] }
+                    },
+                    paymentCompleted: {
+                        $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] }
+                    },
+                    pendingPayment: {
+                        $sum: { $cond: [{ $eq: ['$paymentStatus', 'Pending'] }, 1, 0] }
+                    },
+                    cod: {
+                        $sum: { $cond: [{ $eq: ['$paymentType', 'COD'] }, 1, 0] }
+                    },
+                    online: {
+                        $sum: { $cond: [{ $eq: ['$paymentType', 'Online'] }, 1, 0] }
+                    }
+                }
+            }
+        ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Order counts fetched successfully',
-      data
-    });
+        const data = counts.length > 0 ? counts[0] : {
+            totalOrders: 0,
+            pending: 0,
+            confirmed: 0,
+            completed: 0,
+            paymentCompleted: 0,
+            pendingPayment: 0,
+            cod: 0,
+            online: 0
+        };
 
-  } catch (error) {
-    console.error('Error in GetOrdersCounts:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Order counts fetched successfully',
+            data
+        });
+
+    } catch (error) {
+        console.error('Error in GetOrdersCounts:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetInstallationsCounts = async (req, res) => {
-  try {
-    const { district: districtParam } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
-    const db = await database.connectToDatabase();
-    const collection = db.collection('service_records');
+    try {
+        const { district: districtParam } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
+        const db = await database.connectToDatabase();
+        const collection = db.collection('service_records');
 
-    let matchStage = { task_type: 1 };
-    const isSeller = Number(userRole) === 4;
-    const filterDistrict = isSeller ? userDistrict : districtParam;
-    
-    if (filterDistrict) {
-      const ordersCollection = db.collection('orders');
-      const deviceIds = await ordersCollection.find({
-        'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
-      }).project({ wp_device_id: 1 }).toArray();
+        let matchStage = { task_type: 1 };
+        const isSeller = Number(userRole) === 4;
+        const filterDistrict = isSeller ? userDistrict : districtParam;
 
-      const deviceIdList = deviceIds.map(d => d.wp_device_id);
-      matchStage.wp_device_id = { $in: deviceIdList };
-    }
+        if (filterDistrict) {
+            const ordersCollection = db.collection('orders');
+            const deviceIds = await ordersCollection.find({
+                'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
+            }).project({ wp_device_id: 1 }).toArray();
 
-    const counts = await collection.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: null,
-          totalInstallations: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] }
-          },
-          assigned: {
-            $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] }
-          },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] }
-          },
-          onHold: {
-            $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] }
-          }
+            const deviceIdList = deviceIds.map(d => d.wp_device_id);
+            matchStage.wp_device_id = { $in: deviceIdList };
         }
-      }
-    ]).toArray();
 
-    const data = counts.length > 0 ? counts[0] : {
-      totalInstallations: 0,
-      pending: 0,
-      assigned: 0,
-      completed: 0,
-      onHold: 0
-    };
+        const counts = await collection.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalInstallations: { $sum: 1 },
+                    pending: {
+                        $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] }
+                    },
+                    assigned: {
+                        $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] }
+                    },
+                    completed: {
+                        $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] }
+                    },
+                    onHold: {
+                        $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] }
+                    }
+                }
+            }
+        ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Installation counts fetched successfully',
-      data
-    });
+        const data = counts.length > 0 ? counts[0] : {
+            totalInstallations: 0,
+            pending: 0,
+            assigned: 0,
+            completed: 0,
+            onHold: 0
+        };
 
-  } catch (error) {
-    console.error('Error in GetInstallationsCounts:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Installation counts fetched successfully',
+            data
+        });
+
+    } catch (error) {
+        console.error('Error in GetInstallationsCounts:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetServicesCounts = async (req, res) => {
-  try {
-    const { district: districtParam } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
-    const db = await database.connectToDatabase();
-    const collection = db.collection('service_records');
+    try {
+        const { district: districtParam } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
+        const db = await database.connectToDatabase();
+        const collection = db.collection('service_records');
 
-    let matchStage = { task_type: 2 };
-    const isSeller = Number(userRole) === 4;
-    const filterDistrict = isSeller ? userDistrict : districtParam;
-    
-    if (filterDistrict) {
-      const ordersCollection = db.collection('orders');
-      const deviceIds = await ordersCollection.find({
-        'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
-      }).project({ wp_device_id: 1 }).toArray();
+        let matchStage = { task_type: 2 };
+        const isSeller = Number(userRole) === 4;
+        const filterDistrict = isSeller ? userDistrict : districtParam;
 
-      const deviceIdList = deviceIds.map(d => d.wp_device_id);
-      matchStage.wp_device_id = { $in: deviceIdList };
-    }
+        if (filterDistrict) {
+            const ordersCollection = db.collection('orders');
+            const deviceIds = await ordersCollection.find({
+                'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
+            }).project({ wp_device_id: 1 }).toArray();
 
-    const counts = await collection.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: null,
-          totalServices: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] }
-          },
-          assigned: {
-            $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] }
-          },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] }
-          },
-          onHold: {
-            $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] }
-          }
+            const deviceIdList = deviceIds.map(d => d.wp_device_id);
+            matchStage.wp_device_id = { $in: deviceIdList };
         }
-      }
-    ]).toArray();
 
-    const data = counts.length > 0 ? counts[0] : {
-      totalServices: 0,
-      pending: 0,
-      assigned: 0,
-      completed: 0,
-      onHold: 0
-    };
+        const counts = await collection.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalServices: { $sum: 1 },
+                    pending: {
+                        $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] }
+                    },
+                    assigned: {
+                        $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] }
+                    },
+                    completed: {
+                        $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] }
+                    },
+                    onHold: {
+                        $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] }
+                    }
+                }
+            }
+        ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Service counts fetched successfully',
-      data
-    });
+        const data = counts.length > 0 ? counts[0] : {
+            totalServices: 0,
+            pending: 0,
+            assigned: 0,
+            completed: 0,
+            onHold: 0
+        };
 
-  } catch (error) {
-    console.error('Error in GetServicesCounts:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Service counts fetched successfully',
+            data
+        });
+
+    } catch (error) {
+        console.error('Error in GetServicesCounts:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetManualRequestsCounts = async (req, res) => {
-  try {
-    const { district: districtParam } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
-    const db = await database.connectToDatabase();
-    const collection = db.collection('manual_requests');
+    try {
+        const { district: districtParam } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
+        const db = await database.connectToDatabase();
+        const collection = db.collection('manual_requests');
 
-    let matchStage = {};
-    const isSeller = Number(userRole) === 4;
-    const filterDistrict = isSeller ? userDistrict : districtParam;
+        let matchStage = {};
+        const isSeller = Number(userRole) === 4;
+        const filterDistrict = isSeller ? userDistrict : districtParam;
 
-    if (filterDistrict) {
-      matchStage = { 'address.district': { $regex: new RegExp(filterDistrict, 'i') } };
-    }
-
-    const counts = await collection.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: null,
-          totalRequests: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] }
-          },
-          assigned: {
-            $sum: { $cond: [{ $eq: ['$status', 'Assigned'] }, 1, 0] }
-          },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] }
-          },
-          rejected: {
-            $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] }
-          }
+        if (filterDistrict) {
+            matchStage = { 'address.district': { $regex: new RegExp(filterDistrict, 'i') } };
         }
-      }
-    ]).toArray();
 
-    const data = counts.length > 0 ? counts[0] : {
-      totalRequests: 0,
-      pending: 0,
-      assigned: 0,
-      completed: 0,
-      rejected: 0
-    };
+        const counts = await collection.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalRequests: { $sum: 1 },
+                    pending: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] }
+                    },
+                    assigned: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Assigned'] }, 1, 0] }
+                    },
+                    completed: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] }
+                    },
+                    rejected: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] }
+                    }
+                }
+            }
+        ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Manual request counts fetched successfully',
-      data
-    });
+        const data = counts.length > 0 ? counts[0] : {
+            totalRequests: 0,
+            pending: 0,
+            assigned: 0,
+            completed: 0,
+            rejected: 0
+        };
 
-  } catch (error) {
-    console.error('Error in GetManualRequestsCounts:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Manual request counts fetched successfully',
+            data
+        });
+
+    } catch (error) {
+        console.error('Error in GetManualRequestsCounts:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetLeaveRequestsCounts = async (req, res) => {
-  try {
-    const { district: districtParam, technician_id } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
-    const db = await database.connectToDatabase();
-    const collection = db.collection('leave_requests');
+    try {
+        const { district: districtParam, technician_id } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
+        const db = await database.connectToDatabase();
+        const collection = db.collection('leave_requests');
 
-    let matchStage = {};
-    const isSeller = Number(userRole) === 4;
-    const filterDistrict = isSeller ? userDistrict : districtParam;
-    
-    if (technician_id) {
-      matchStage.technician_id = technician_id;
-    }
-    
-    if (filterDistrict) {
-      const usersCollection = db.collection('users');
-      const technicians = await usersCollection.find({
-        role_id: 2,
-        district: { $regex: new RegExp(filterDistrict, 'i') }
-      }).project({ technician_id: 1 }).toArray();
+        let matchStage = {};
+        const isSeller = Number(userRole) === 4;
+        const filterDistrict = isSeller ? userDistrict : districtParam;
 
-      const technicianIds = technicians.map(t => t.technician_id);
-      matchStage.technician_id = { $in: technicianIds };
-    }
-
-    const counts = await collection.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: null,
-          totalLeaves: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] }
-          },
-          approved: {
-            $sum: { $cond: [{ $eq: ['$status', 'Approved'] }, 1, 0] }
-          },
-          rejected: {
-            $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] }
-          }
+        if (technician_id) {
+            matchStage.technician_id = technician_id;
         }
-      }
-    ]).toArray();
 
-    const data = counts.length > 0 ? counts[0] : {
-      totalLeaves: 0,
-      pending: 0,
-      approved: 0,
-      rejected: 0
-    };
+        if (filterDistrict) {
+            const usersCollection = db.collection('users');
+            const technicians = await usersCollection.find({
+                role_id: 2,
+                district: { $regex: new RegExp(filterDistrict, 'i') }
+            }).project({ technician_id: 1 }).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Leave request counts fetched successfully',
-      data
-    });
+            const technicianIds = technicians.map(t => t.technician_id);
+            matchStage.technician_id = { $in: technicianIds };
+        }
 
-  } catch (error) {
-    console.error('Error in GetLeaveRequestsCounts:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+        const counts = await collection.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalLeaves: { $sum: 1 },
+                    pending: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] }
+                    },
+                    approved: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Approved'] }, 1, 0] }
+                    },
+                    rejected: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] }
+                    }
+                }
+            }
+        ]).toArray();
+
+        const data = counts.length > 0 ? counts[0] : {
+            totalLeaves: 0,
+            pending: 0,
+            approved: 0,
+            rejected: 0
+        };
+
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Leave request counts fetched successfully',
+            data
+        });
+
+    } catch (error) {
+        console.error('Error in GetLeaveRequestsCounts:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetOrdersCountsByDistrict = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const collection = db.collection('orders');
+    try {
+        const db = await database.connectToDatabase();
+        const collection = db.collection('orders');
 
-    const counts = await collection.aggregate([
-      {
-        $group: {
-          _id: { $toLower: '$deliveryAddress.district' },
-          totalOrders: { $sum: 1 },
-          pending: {
-            $sum: { $cond: [{ $and: [{ $ne: ['$deliveryCompletionStatus', true] }, { $ne: ['$orderStatus', 'Delivered'] }, { $ne: ['$orderStatus', 'Confirmed'] }] }, 1, 0] }
-          },
-          confirmed: {
-            $sum: { $cond: [{ $eq: ['$orderStatus', 'Confirmed'] }, 1, 0] }
-          },
-          completed: {
-            $sum: { $cond: [{ $or: [{ $eq: ['$deliveryCompletionStatus', true] }, { $eq: ['$orderStatus', 'Delivered'] }] }, 1, 0] }
-          },
-          paymentCompleted: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] }
-          },
-          pendingPayment: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'Pending'] }, 1, 0] }
-          },
-          cod: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'COD'] }, 1, 0] }
-          },
-          online: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'Online'] }, 1, 0] }
-          }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]).toArray();
+        const counts = await collection.aggregate([
+            {
+                $group: {
+                    _id: { $toLower: '$deliveryAddress.district' },
+                    totalOrders: { $sum: 1 },
+                    pending: {
+                        $sum: { $cond: [{ $and: [{ $ne: ['$deliveryCompletionStatus', true] }, { $ne: ['$orderStatus', 'Delivered'] }, { $ne: ['$orderStatus', 'Confirmed'] }] }, 1, 0] }
+                    },
+                    confirmed: {
+                        $sum: { $cond: [{ $eq: ['$orderStatus', 'Confirmed'] }, 1, 0] }
+                    },
+                    completed: {
+                        $sum: { $cond: [{ $or: [{ $eq: ['$deliveryCompletionStatus', true] }, { $eq: ['$orderStatus', 'Delivered'] }] }, 1, 0] }
+                    },
+                    paymentCompleted: {
+                        $sum: { $cond: [{ $eq: ['$paymentStatus', 'Completed'] }, 1, 0] }
+                    },
+                    pendingPayment: {
+                        $sum: { $cond: [{ $eq: ['$paymentStatus', 'Pending'] }, 1, 0] }
+                    },
+                    cod: {
+                        $sum: { $cond: [{ $eq: ['$paymentType', 'COD'] }, 1, 0] }
+                    },
+                    online: {
+                        $sum: { $cond: [{ $eq: ['$paymentType', 'Online'] }, 1, 0] }
+                    }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Order counts by district fetched successfully',
-      data: counts
-    });
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Order counts by district fetched successfully',
+            data: counts
+        });
 
-  } catch (error) {
-    console.error('Error in GetOrdersCountsByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+    } catch (error) {
+        console.error('Error in GetOrdersCountsByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetInstallationsCountsByDistrict = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const serviceCollection = db.collection('service_records');
-    const ordersCollection = db.collection('orders');
+    try {
+        const db = await database.connectToDatabase();
+        const serviceCollection = db.collection('service_records');
+        const ordersCollection = db.collection('orders');
 
-    const districts = await ordersCollection.aggregate([
-      {
-        $group: {
-          _id: { $toLower: '$deliveryAddress.district' }
+        const districts = await ordersCollection.aggregate([
+            {
+                $group: {
+                    _id: { $toLower: '$deliveryAddress.district' }
+                }
+            }
+        ]).toArray();
+
+        const data = [];
+        for (const districtDoc of districts) {
+            const district = districtDoc._id;
+            const deviceIds = await ordersCollection.find({
+                'deliveryAddress.district': { $regex: new RegExp(district, 'i') }
+            }).project({ wp_device_id: 1 }).toArray();
+
+            const deviceIdList = deviceIds.map(d => d.wp_device_id);
+
+            const counts = await serviceCollection.aggregate([
+                { $match: { task_type: 1, wp_device_id: { $in: deviceIdList } } },
+                {
+                    $group: {
+                        _id: null,
+                        totalInstallations: { $sum: 1 },
+                        pending: { $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] } },
+                        assigned: { $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] } },
+                        completed: { $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] } },
+                        onHold: { $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] } }
+                    }
+                }
+            ]).toArray();
+
+            data.push({
+                district,
+                ...(counts.length > 0 ? counts[0] : {
+                    _id: null,
+                    totalInstallations: 0,
+                    pending: 0,
+                    assigned: 0,
+                    completed: 0,
+                    onHold: 0
+                })
+            });
         }
-      }
-    ]).toArray();
 
-    const data = [];
-    for (const districtDoc of districts) {
-      const district = districtDoc._id;
-      const deviceIds = await ordersCollection.find({
-        'deliveryAddress.district': { $regex: new RegExp(district, 'i') }
-      }).project({ wp_device_id: 1 }).toArray();
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Installation counts by district fetched successfully',
+            data
+        });
 
-      const deviceIdList = deviceIds.map(d => d.wp_device_id);
-
-      const counts = await serviceCollection.aggregate([
-        { $match: { task_type: 1, wp_device_id: { $in: deviceIdList } } },
-        {
-          $group: {
-            _id: null,
-            totalInstallations: { $sum: 1 },
-            pending: { $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] } },
-            assigned: { $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] } },
-            completed: { $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] } },
-            onHold: { $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] } }
-          }
-        }
-      ]).toArray();
-
-      data.push({
-        district,
-        ...(counts.length > 0 ? counts[0] : {
-          _id: null,
-          totalInstallations: 0,
-          pending: 0,
-          assigned: 0,
-          completed: 0,
-          onHold: 0
-        })
-      });
+    } catch (error) {
+        console.error('Error in GetInstallationsCountsByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
     }
-
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Installation counts by district fetched successfully',
-      data
-    });
-
-  } catch (error) {
-    console.error('Error in GetInstallationsCountsByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
 };
 
 const GetServicesCountsByDistrict = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const serviceCollection = db.collection('service_records');
-    const ordersCollection = db.collection('orders');
+    try {
+        const db = await database.connectToDatabase();
+        const serviceCollection = db.collection('service_records');
+        const ordersCollection = db.collection('orders');
 
-    const districts = await ordersCollection.aggregate([
-      {
-        $group: {
-          _id: { $toLower: '$deliveryAddress.district' }
+        const districts = await ordersCollection.aggregate([
+            {
+                $group: {
+                    _id: { $toLower: '$deliveryAddress.district' }
+                }
+            }
+        ]).toArray();
+
+        const data = [];
+        for (const districtDoc of districts) {
+            const district = districtDoc._id;
+            const deviceIds = await ordersCollection.find({
+                'deliveryAddress.district': { $regex: new RegExp(district, 'i') }
+            }).project({ wp_device_id: 1 }).toArray();
+
+            const deviceIdList = deviceIds.map(d => d.wp_device_id);
+
+            const counts = await serviceCollection.aggregate([
+                { $match: { task_type: 2, wp_device_id: { $in: deviceIdList } } },
+                {
+                    $group: {
+                        _id: null,
+                        totalServices: { $sum: 1 },
+                        pending: { $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] } },
+                        assigned: { $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] } },
+                        completed: { $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] } },
+                        onHold: { $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] } }
+                    }
+                }
+            ]).toArray();
+
+            data.push({
+                district,
+                ...(counts.length > 0 ? counts[0] : {
+                    _id: null,
+                    totalServices: 0,
+                    pending: 0,
+                    assigned: 0,
+                    completed: 0,
+                    onHold: 0
+                })
+            });
         }
-      }
-    ]).toArray();
 
-    const data = [];
-    for (const districtDoc of districts) {
-      const district = districtDoc._id;
-      const deviceIds = await ordersCollection.find({
-        'deliveryAddress.district': { $regex: new RegExp(district, 'i') }
-      }).project({ wp_device_id: 1 }).toArray();
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Service counts by district fetched successfully',
+            data
+        });
 
-      const deviceIdList = deviceIds.map(d => d.wp_device_id);
-
-      const counts = await serviceCollection.aggregate([
-        { $match: { task_type: 2, wp_device_id: { $in: deviceIdList } } },
-        {
-          $group: {
-            _id: null,
-            totalServices: { $sum: 1 },
-            pending: { $sum: { $cond: [{ $eq: ['$task_status', 'Pending'] }, 1, 0] } },
-            assigned: { $sum: { $cond: [{ $ne: ['$assigned_technician_id', null] }, 1, 0] } },
-            completed: { $sum: { $cond: [{ $eq: ['$task_status', 'Completed'] }, 1, 0] } },
-            onHold: { $sum: { $cond: [{ $in: ['$task_status', ['In Progress', 'In_Progress', 'in_progress']] }, 1, 0] } }
-          }
-        }
-      ]).toArray();
-
-      data.push({
-        district,
-        ...(counts.length > 0 ? counts[0] : {
-          _id: null,
-          totalServices: 0,
-          pending: 0,
-          assigned: 0,
-          completed: 0,
-          onHold: 0
-        })
-      });
+    } catch (error) {
+        console.error('Error in GetServicesCountsByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
     }
-
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Service counts by district fetched successfully',
-      data
-    });
-
-  } catch (error) {
-    console.error('Error in GetServicesCountsByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
 };
 
 const GetManualRequestsCountsByDistrict = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const collection = db.collection('manual_requests');
+    try {
+        const db = await database.connectToDatabase();
+        const collection = db.collection('manual_requests');
 
-    const counts = await collection.aggregate([
-      {
-        $group: {
-          _id: { $toLower: '$address.district' },
-          totalRequests: { $sum: 1 },
-          pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
-          assigned: { $sum: { $cond: [{ $eq: ['$status', 'Assigned'] }, 1, 0] } },
-          completed: { $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]).toArray();
+        const counts = await collection.aggregate([
+            {
+                $group: {
+                    _id: { $toLower: '$address.district' },
+                    totalRequests: { $sum: 1 },
+                    pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
+                    assigned: { $sum: { $cond: [{ $eq: ['$status', 'Assigned'] }, 1, 0] } },
+                    completed: { $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] } },
+                    rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]).toArray();
 
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Manual request counts by district fetched successfully',
-      data: counts.map(d => ({ district: d._id, ...d }))
-    });
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Manual request counts by district fetched successfully',
+            data: counts.map(d => ({ district: d._id, ...d }))
+        });
 
-  } catch (error) {
-    console.error('Error in GetManualRequestsCountsByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
+    } catch (error) {
+        console.error('Error in GetManualRequestsCountsByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
+    }
 };
 
 const GetLeaveRequestsCountsByDistrict = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const leaveCollection = db.collection('leave_requests');
-    const usersCollection = db.collection('users');
+    try {
+        const db = await database.connectToDatabase();
+        const leaveCollection = db.collection('leave_requests');
+        const usersCollection = db.collection('users');
 
-    const techniciansGrouped = await usersCollection.aggregate([
-      { $match: { role_id: 2 } },
-      {
-        $group: {
-          _id: { $toLower: '$district' },
-          technician_ids: { $push: '$technician_id' }
+        const techniciansGrouped = await usersCollection.aggregate([
+            { $match: { role_id: 2 } },
+            {
+                $group: {
+                    _id: { $toLower: '$district' },
+                    technician_ids: { $push: '$technician_id' }
+                }
+            }
+        ]).toArray();
+
+        const data = [];
+        for (const techGroup of techniciansGrouped) {
+            const counts = await leaveCollection.aggregate([
+                { $match: { technician_id: { $in: techGroup.technician_ids } } },
+                {
+                    $group: {
+                        _id: null,
+                        totalLeaves: { $sum: 1 },
+                        pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
+                        approved: { $sum: { $cond: [{ $eq: ['$status', 'Approved'] }, 1, 0] } },
+                        rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } }
+                    }
+                }
+            ]).toArray();
+
+            data.push({
+                district: techGroup._id,
+                ...(counts.length > 0 ? counts[0] : {
+                    _id: null,
+                    totalLeaves: 0,
+                    pending: 0,
+                    approved: 0,
+                    rejected: 0
+                })
+            });
         }
-      }
-    ]).toArray();
 
-    const data = [];
-    for (const techGroup of techniciansGrouped) {
-      const counts = await leaveCollection.aggregate([
-        { $match: { technician_id: { $in: techGroup.technician_ids } } },
-        {
-          $group: {
-            _id: null,
-            totalLeaves: { $sum: 1 },
-            pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
-            approved: { $sum: { $cond: [{ $eq: ['$status', 'Approved'] }, 1, 0] } },
-            rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } }
-          }
-        }
-      ]).toArray();
+        return res.status(200).json({
+            status: 'Success',
+            message: 'Leave request counts by district fetched successfully',
+            data
+        });
 
-      data.push({
-        district: techGroup._id,
-        ...(counts.length > 0 ? counts[0] : {
-          _id: null,
-          totalLeaves: 0,
-          pending: 0,
-          approved: 0,
-          rejected: 0
-        })
-      });
+    } catch (error) {
+        console.error('Error in GetLeaveRequestsCountsByDistrict:', error);
+        logger?.error?.(error);
+        return res.status(500).json({
+            status: 'Failed',
+            message: 'Internal Server Error'
+        });
     }
-
-    return res.status(200).json({
-      status: 'Success',
-      message: 'Leave request counts by district fetched successfully',
-      data
-    });
-
-  } catch (error) {
-    console.error('Error in GetLeaveRequestsCountsByDistrict:', error);
-    logger?.error?.(error);
-    return res.status(500).json({
-      status: 'Failed',
-      message: 'Internal Server Error'
-    });
-  }
 };
 
 // GetSearchInstallationsCount - Multi-field search for installations
 const GetSearchInstallationsCount = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const collection = db.collection('service_records');
-    const { search } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
+    try {
+        const db = await database.connectToDatabase();
+        const collection = db.collection('service_records');
+        const { search } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
 
-    let matchStage = { task_type: 1 };
-    
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      matchStage.$or = [
-        { task_id: searchRegex },
-        { wp_device_id: searchRegex },
-        { model: searchRegex },
-        { customer_name: searchRegex },
-        { customer_email: searchRegex },
-        { assigned_technician_name: searchRegex },
-        { assigned_technician_id: searchRegex },
-        { device_name: searchRegex }
-      ];
+        let matchStage = { task_type: 1 };
+
+        if (search && search.trim()) {
+            const searchRegex = new RegExp(search.trim(), 'i');
+            matchStage.$or = [
+                { task_id: searchRegex },
+                { wp_device_id: searchRegex },
+                { model: searchRegex },
+                { customer_name: searchRegex },
+                { customer_email: searchRegex },
+                { assigned_technician_name: searchRegex },
+                { assigned_technician_id: searchRegex },
+                { device_name: searchRegex }
+            ];
+        }
+
+        if (Number(userRole) === 4) {
+            const filterDistrict = userDistrict;
+            if (filterDistrict) {
+                const ordersCollection = db.collection('orders');
+                const deviceIds = await ordersCollection.find({
+                    'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
+                }).project({ wp_device_id: 1 }).toArray();
+                const deviceIdList = deviceIds.map(d => d.wp_device_id);
+                matchStage.wp_device_id = { $in: deviceIdList };
+            }
+        }
+
+        const total = await collection.countDocuments(matchStage);
+
+        return res.status(200).json({
+            status: 'Success',
+            totalRecords: total
+        });
+    } catch (error) {
+        console.error('Error in GetSearchInstallationsCount:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
     }
-
-    if (Number(userRole) === 4) {
-      const filterDistrict = userDistrict;
-      if (filterDistrict) {
-        const ordersCollection = db.collection('orders');
-        const deviceIds = await ordersCollection.find({
-          'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
-        }).project({ wp_device_id: 1 }).toArray();
-        const deviceIdList = deviceIds.map(d => d.wp_device_id);
-        matchStage.wp_device_id = { $in: deviceIdList };
-      }
-    }
-
-    const total = await collection.countDocuments(matchStage);
-
-    return res.status(200).json({
-      status: 'Success',
-      totalRecords: total
-    });
-  } catch (error) {
-    console.error('Error in GetSearchInstallationsCount:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
 // SearchInstallations - Multi-field search for installations with pagination
 const SearchInstallations = async (req, res) => {
-  try {
-    const { getPaginationParams, formatPaginatedResponse } = require('../utils/paginationHelper');
-    const db = await database.connectToDatabase();
-    const collection = db.collection('service_records');
-    const { page, limit, skip } = getPaginationParams(req, 10);
-    const { search } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
+    try {
+        const { getPaginationParams, formatPaginatedResponse } = require('../utils/paginationHelper');
+        const db = await database.connectToDatabase();
+        const collection = db.collection('service_records');
+        const { page, limit, skip } = getPaginationParams(req, 10);
+        const { search } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
 
-    let matchStage = { task_type: 1 };
-    
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      matchStage.$or = [
-        { task_id: searchRegex },
-        { wp_device_id: searchRegex },
-        { model: searchRegex },
-        { customer_name: searchRegex },
-        { customer_email: searchRegex },
-        { assigned_technician_name: searchRegex },
-        { assigned_technician_id: searchRegex },
-        { device_name: searchRegex }
-      ];
+        let matchStage = { task_type: 1 };
+
+        if (search && search.trim()) {
+            const searchRegex = new RegExp(search.trim(), 'i');
+            matchStage.$or = [
+                { task_id: searchRegex },
+                { wp_device_id: searchRegex },
+                { model: searchRegex },
+                { customer_name: searchRegex },
+                { customer_email: searchRegex },
+                { assigned_technician_name: searchRegex },
+                { assigned_technician_id: searchRegex },
+                { device_name: searchRegex }
+            ];
+        }
+
+        if (Number(userRole) === 4) {
+            const filterDistrict = userDistrict;
+            if (filterDistrict) {
+                const ordersCollection = db.collection('orders');
+                const deviceIds = await ordersCollection.find({
+                    'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
+                }).project({ wp_device_id: 1 }).toArray();
+                const deviceIdList = deviceIds.map(d => d.wp_device_id);
+                matchStage.wp_device_id = { $in: deviceIdList };
+            }
+        }
+
+        const installations = await collection
+            .find(matchStage)
+            .sort({ created_date: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+        const total = await collection.countDocuments(matchStage);
+
+        return res.status(200).json(formatPaginatedResponse(installations, total, page, limit));
+    } catch (error) {
+        console.error('Error in SearchInstallations:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
     }
-
-    if (Number(userRole) === 4) {
-      const filterDistrict = userDistrict;
-      if (filterDistrict) {
-        const ordersCollection = db.collection('orders');
-        const deviceIds = await ordersCollection.find({
-          'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
-        }).project({ wp_device_id: 1 }).toArray();
-        const deviceIdList = deviceIds.map(d => d.wp_device_id);
-        matchStage.wp_device_id = { $in: deviceIdList };
-      }
-    }
-
-    const installations = await collection
-      .find(matchStage)
-      .sort({ created_date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
-    const total = await collection.countDocuments(matchStage);
-
-    return res.status(200).json(formatPaginatedResponse(installations, total, page, limit));
-  } catch (error) {
-    console.error('Error in SearchInstallations:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
 // GetSearchServicesCount - Multi-field search for services
 const GetSearchServicesCount = async (req, res) => {
-  try {
-    const db = await database.connectToDatabase();
-    const collection = db.collection('service_records');
-    const { search } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
+    try {
+        const db = await database.connectToDatabase();
+        const collection = db.collection('service_records');
+        const { search } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
 
-    let matchStage = { task_type: 2 };
-    
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      matchStage.$or = [
-        { task_id: searchRegex },
-        { wp_device_id: searchRegex },
-        { model: searchRegex },
-        { customer_name: searchRegex },
-        { customer_email: searchRegex },
-        { assigned_technician_name: searchRegex },
-        { assigned_technician_id: searchRegex },
-        { device_name: searchRegex }
-      ];
+        let matchStage = { task_type: 2 };
+
+        if (search && search.trim()) {
+            const searchRegex = new RegExp(search.trim(), 'i');
+            matchStage.$or = [
+                { task_id: searchRegex },
+                { wp_device_id: searchRegex },
+                { model: searchRegex },
+                { customer_name: searchRegex },
+                { customer_email: searchRegex },
+                { assigned_technician_name: searchRegex },
+                { assigned_technician_id: searchRegex },
+                { device_name: searchRegex }
+            ];
+        }
+
+        if (Number(userRole) === 4) {
+            const filterDistrict = userDistrict;
+            if (filterDistrict) {
+                const ordersCollection = db.collection('orders');
+                const deviceIds = await ordersCollection.find({
+                    'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
+                }).project({ wp_device_id: 1 }).toArray();
+                const deviceIdList = deviceIds.map(d => d.wp_device_id);
+                matchStage.wp_device_id = { $in: deviceIdList };
+            }
+        }
+
+        const total = await collection.countDocuments(matchStage);
+
+        return res.status(200).json({
+            status: 'Success',
+            totalRecords: total
+        });
+    } catch (error) {
+        console.error('Error in GetSearchServicesCount:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
     }
-
-    if (Number(userRole) === 4) {
-      const filterDistrict = userDistrict;
-      if (filterDistrict) {
-        const ordersCollection = db.collection('orders');
-        const deviceIds = await ordersCollection.find({
-          'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
-        }).project({ wp_device_id: 1 }).toArray();
-        const deviceIdList = deviceIds.map(d => d.wp_device_id);
-        matchStage.wp_device_id = { $in: deviceIdList };
-      }
-    }
-
-    const total = await collection.countDocuments(matchStage);
-
-    return res.status(200).json({
-      status: 'Success',
-      totalRecords: total
-    });
-  } catch (error) {
-    console.error('Error in GetSearchServicesCount:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
 // SearchServices - Multi-field search for services with pagination
 const SearchServices = async (req, res) => {
-  try {
-    const { getPaginationParams, formatPaginatedResponse } = require('../utils/paginationHelper');
-    const db = await database.connectToDatabase();
-    const collection = db.collection('service_records');
-    const { page, limit, skip } = getPaginationParams(req, 10);
-    const { search } = req.query;
-    const userRole = req.user?.role_id;
-    const userDistrict = req.user?.district;
+    try {
+        const { getPaginationParams, formatPaginatedResponse } = require('../utils/paginationHelper');
+        const db = await database.connectToDatabase();
+        const collection = db.collection('service_records');
+        const { page, limit, skip } = getPaginationParams(req, 10);
+        const { search } = req.query;
+        const userRole = req.user?.role_id;
+        const userDistrict = req.user?.district;
 
-    let matchStage = { task_type: 2 };
-    
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      matchStage.$or = [
-        { task_id: searchRegex },
-        { wp_device_id: searchRegex },
-        { model: searchRegex },
-        { customer_name: searchRegex },
-        { customer_email: searchRegex },
-        { assigned_technician_name: searchRegex },
-        { assigned_technician_id: searchRegex },
-        { device_name: searchRegex }
-      ];
+        let matchStage = { task_type: 2 };
+
+        if (search && search.trim()) {
+            const searchRegex = new RegExp(search.trim(), 'i');
+            matchStage.$or = [
+                { task_id: searchRegex },
+                { wp_device_id: searchRegex },
+                { model: searchRegex },
+                { customer_name: searchRegex },
+                { customer_email: searchRegex },
+                { assigned_technician_name: searchRegex },
+                { assigned_technician_id: searchRegex },
+                { device_name: searchRegex }
+            ];
+        }
+
+        if (Number(userRole) === 4) {
+            const filterDistrict = userDistrict;
+            if (filterDistrict) {
+                const ordersCollection = db.collection('orders');
+                const deviceIds = await ordersCollection.find({
+                    'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
+                }).project({ wp_device_id: 1 }).toArray();
+                const deviceIdList = deviceIds.map(d => d.wp_device_id);
+                matchStage.wp_device_id = { $in: deviceIdList };
+            }
+        }
+
+        const services = await collection
+            .find(matchStage)
+            .sort({ created_date: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+        const total = await collection.countDocuments(matchStage);
+
+        return res.status(200).json(formatPaginatedResponse(services, total, page, limit));
+    } catch (error) {
+        console.error('Error in SearchServices:', error);
+        logger?.error?.(error);
+        return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
     }
-
-    if (Number(userRole) === 4) {
-      const filterDistrict = userDistrict;
-      if (filterDistrict) {
-        const ordersCollection = db.collection('orders');
-        const deviceIds = await ordersCollection.find({
-          'deliveryAddress.district': { $regex: new RegExp(filterDistrict, 'i') }
-        }).project({ wp_device_id: 1 }).toArray();
-        const deviceIdList = deviceIds.map(d => d.wp_device_id);
-        matchStage.wp_device_id = { $in: deviceIdList };
-      }
-    }
-
-    const services = await collection
-      .find(matchStage)
-      .sort({ created_date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
-    const total = await collection.countDocuments(matchStage);
-
-    return res.status(200).json(formatPaginatedResponse(services, total, page, limit));
-  } catch (error) {
-    console.error('Error in SearchServices:', error);
-    logger?.error?.(error);
-    return res.status(500).json({ status: 'Failed', message: 'Internal Server Error' });
-  }
 };
 
 // Export controllers
@@ -8415,7 +8477,7 @@ module.exports = {
     FetchSelectServiceTask, AssignService, ReAssignService, FetchInstalledDevicesForRequests, CreateManualRequest, FetchManualRequests, FetchManualRequestsBySellerDistrict, AssignManualRequest, ReAssignManualRequest, assignPermissions, fetchPermissionsByRole,
     GetUsersByDistrict, GetUsersByDistrictCount, GetOrdersByDistrict, GetInstallationsByDistrict, GetServicesByDistrict,
     AssignSeller, ReAssignSeller, DeactivateSellerAssignment, FetchEndUserDevices, FetchOrdersByUserId, FetchTechnicianTasksByUserId, GetAnalytics,
-    GetAnalyticsByDistrict,GetDistrictsWithSellers,ConfirmCodPayment, UnAssignTask, getAssignmentHistory,
+    GetAnalyticsByDistrict, GetDistrictsWithSellers, ConfirmCodPayment, UnAssignTask, getAssignmentHistory,
     GetSearchProductsCount, SearchProducts, GetSearchDevicesCount, SearchDevices, GetSearchOrdersCount, SearchOrders,
     GetSearchInstallationsCount, SearchInstallations, GetSearchServicesCount, SearchServices,
     GetSearchRolesCount, SearchRoles, GetSearchCallRequestsCount, SearchCallRequests, GetSearchContactCount, SearchContact,
